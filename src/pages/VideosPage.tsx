@@ -50,7 +50,12 @@ export function VideosPage() {
           {isLoading ? (
             <p className="empty-state">Loading videos...</p>
           ) : videos.length === 0 ? (
-            <p className="empty-state">No videos are available right now.</p>
+            <div className="empty-state">
+              <p>No videos are available right now.</p>
+              <a href="https://www.youtube.com/@ShuzhFit" target="_blank" rel="noopener noreferrer">
+                Watch on YouTube
+              </a>
+            </div>
           ) : (
             videos.map((video) => {
               const videoId = getYouTubeVideoId(video.youtubeUrl);

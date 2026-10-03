@@ -55,7 +55,8 @@ export function requireJson(req: ApiRequest, res: ApiResponse): boolean {
 
 export function requireOrigin(req: ApiRequest, res: ApiResponse): boolean {
   const origin = header(req, "origin");
-  const host = header(req, "x-forwarded-host") ?? header(req, "host");
+  const host = (header(req, "x-forwarded-host") ?? header(req, "host"))
+    ?.split(",")[0]?.trim();
   if (!origin || !host) {
     sendError(
       res,
@@ -66,7 +67,14 @@ export function requireOrigin(req: ApiRequest, res: ApiResponse): boolean {
     return false;
   }
   try {
-    if (new URL(origin).host.toLowerCase() !== host.toLowerCase()) {
+    const originUrl = new URL(origin);
+    const requestHost = new URL(`http://${host}`).host;
+    const isLocalhost = (hostname: string) =>
+      hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
+    const localhostDevMatch = process.env.NODE_ENV !== "production" &&
+      isLocalhost(originUrl.hostname.toLowerCase()) &&
+      isLocalhost(new URL(`http://${host}`).hostname.toLowerCase());
+    if (originUrl.host.toLowerCase() !== requestHost.toLowerCase() && !localhostDevMatch) {
       sendError(
         res,
         403,

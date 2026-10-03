@@ -1,14 +1,13 @@
 import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import type { AuthUser } from "../../../shared/auth";
+import { requireServerEnv } from "../../lib/env";
 
 export type { AuthRole, AuthUser } from "../../../shared/auth";
 
-const configuredJwtSecret = process.env.JWT_SECRET;
-if (!configuredJwtSecret) {
-  throw new Error("Missing JWT_SECRET environment variable.");
+function authSecret(): Uint8Array {
+  return new TextEncoder().encode(requireServerEnv("JWT_SECRET"));
 }
-const authSecret = new TextEncoder().encode(configuredJwtSecret);
 
 export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
@@ -28,11 +27,11 @@ export async function createAuthToken(user: AuthUser): Promise<string> {
     .setSubject(user.id)
     .setIssuedAt()
     .setExpirationTime("7d")
-    .sign(authSecret);
+    .sign(authSecret());
 }
 
 export async function verifyAuthToken(token: string): Promise<AuthUser> {
-  const verified = await jwtVerify(token, authSecret);
+  const verified = await jwtVerify(token, authSecret());
   if (typeof verified.payload.sub !== "string" || typeof verified.payload.email !== "string") {
     throw new Error("Invalid session token.");
   }

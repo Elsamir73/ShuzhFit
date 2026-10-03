@@ -1,171 +1,128 @@
 import { fallbackVideos } from "../../../shared/fallbackVideos";
+import { getYouTubeEnv } from "../../lib/env";
 import type { ApiRequest, ApiResponse } from "../../lib/http";
 import { sendError } from "../../lib/http";
-type VideoRow = {
-  id: string;
-  title: string;
-  thumbnail: string;
-  publishedAt: string;
-  durationSeconds: number;
-  isShort: boolean;
-  url: string;
-};
-function duration(value: string): number {
-  const m = value.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-  return m
-    ? Number(m[1] ?? 0) * 3600 + Number(m[2] ?? 0) * 60 + Number(m[3] ?? 0)
-    : 0;
+
+type Video = (typeof fallbackVideos)[number];
+
+function durationSeconds(value: string): number {
+  const parts = value.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  return parts ? Number(parts[1] ?? 0) * 3600 + Number(parts[2] ?? 0) * 60 + Number(parts[3] ?? 0) : 0;
 }
-function isVideoRow(value: unknown): value is VideoRow {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "id" in value &&
-    "url" in value
-  );
+
+function decodeXml(value: string): string {
+  return value.replace(/&amp;/g, "&").replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
 }
-async function rss(channelId: string): Promise<VideoRow[]> {
-  const response = await fetch(
-    `https://www.youtube.com/feeds/videos.xml?channel_id=${encodeURIComponent(channelId)}`,
-    {
-      headers: { accept: "application/atom+xml" },
-      signal: AbortSignal.timeout(5000),
-    },
+
+async function loadFromApi(apiKey: string, channelId: string): Promise<Video[]> {
+  const channelResponse = await fetch(
+    `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${encodeURIComponent(channelId)}&key=${encodeURIComponent(apiKey)}`,
+    { signal: AbortSignal.timeout(6000) },
   );
-  if (!response.ok) throw new Error("YouTube feed unavailable");
-  const xml = await response.text();
-  const rows = [...xml.matchAll(/<entry>([\s\S]*?)<\/entry>/g)];
-  return rows.slice(0, 20).flatMap((match) => {
-    const text = match[1] ?? "";
-    const id = text.match(/<yt:videoId>([^<]+)<\/yt:videoId>/)?.[1];
-    const title = text.match(/<title>([^<]+)<\/title>/)?.[1];
-    const publishedAt = text.match(/<published>([^<]+)<\/published>/)?.[1];
-    if (!id || !title) return [];
-    const decoded = title
-      .replace(/&amp;/g, "&")
-      .replace(/&lt;/g, "<")
-      .replace(/&gt;/g, ">")
-      .replace(/&quot;/g, '"');
-    return [
-      {
-        id,
-        title: decoded,
-        thumbnail: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
-        publishedAt: publishedAt ?? new Date(0).toISOString(),
-        durationSeconds: 0,
-        isShort: false,
-        url: `https://www.youtube.com/watch?v=${id}`,
-      },
-    ];
+  if (!channelResponse.ok) throw new Error("YouTube channel request failed");
+  const channelData = await channelResponse.json() as {
+    items?: Array<{ contentDetails?: { relatedPlaylists?: { uploads?: string } } }>;
+  };
+  const uploads = channelData.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
+  if (!uploads) throw new Error("YouTube uploads playlist was unavailable");
+
+  const playlistResponse = await fetch(
+    `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${encodeURIComponent(uploads)}&key=${encodeURIComponent(apiKey)}`,
+    { signal: AbortSignal.timeout(6000) },
+  );
+  if (!playlistResponse.ok) throw new Error("YouTube playlist request failed");
+  const playlistData = await playlistResponse.json() as {
+    items?: Array<{ snippet?: { title?: string; publishedAt?: string; resourceId?: { videoId?: string } } }>;
+  };
+  const entries = (playlistData.items ?? []).flatMap((item) => {
+    const id = item.snippet?.resourceId?.videoId;
+    if (!id) return [];
+    return [{
+      id,
+      title: item.snippet?.title ?? "ShuzhFit video",
+      thumbnail: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
+      publishedAt: item.snippet?.publishedAt ?? new Date(0).toISOString(),
+      durationSeconds: 0,
+      isShort: false,
+      url: `https://www.youtube.com/watch?v=${id}`,
+    }];
+  });
+  if (!entries.length) return entries;
+
+  const detailsResponse = await fetch(
+    `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${encodeURIComponent(entries.map((video) => video.id).join(","))}&key=${encodeURIComponent(apiKey)}`,
+    { signal: AbortSignal.timeout(6000) },
+  );
+  if (!detailsResponse.ok) throw new Error("YouTube video details request failed");
+  const details = await detailsResponse.json() as {
+    items?: Array<{ id: string; contentDetails?: { duration?: string } }>;
+  };
+  const durations = new Map((details.items ?? []).map((item) => [
+    item.id,
+    durationSeconds(item.contentDetails?.duration ?? ""),
+  ]));
+  return entries.map((video) => {
+    const duration = durations.get(video.id) ?? 0;
+    return { ...video, durationSeconds: duration, isShort: duration > 0 && duration <= 60 };
   });
 }
-export default async function handler(
-  req: ApiRequest,
-  res: ApiResponse,
-): Promise<void> {
+
+async function loadFromRss(channelId: string): Promise<Video[]> {
+  const response = await fetch(
+    `https://www.youtube.com/feeds/videos.xml?channel_id=${encodeURIComponent(channelId)}`,
+    { headers: { accept: "application/atom+xml" }, signal: AbortSignal.timeout(5000) },
+  );
+  if (!response.ok) throw new Error("YouTube RSS request failed");
+  const xml = await response.text();
+  return [...xml.matchAll(/<entry>([\s\S]*?)<\/entry>/g)].flatMap((match) => {
+    const entry = match[1] ?? "";
+    const id = entry.match(/<yt:videoId>([^<]+)<\/yt:videoId>/)?.[1];
+    const title = entry.match(/<title>([^<]+)<\/title>/)?.[1];
+    if (!id || !title) return [];
+    return [{
+      id,
+      title: decodeXml(title),
+      thumbnail: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
+      publishedAt: entry.match(/<published>([^<]+)<\/published>/)?.[1] ?? new Date(0).toISOString(),
+      durationSeconds: 0,
+      isShort: false,
+      url: `https://www.youtube.com/watch?v=${id}`,
+    }];
+  });
+}
+
+export default async function handler(req: ApiRequest, res: ApiResponse): Promise<void> {
   if (req.method !== "GET") {
     sendError(res, 405, "METHOD_NOT_ALLOWED", "Method not allowed.");
     return;
   }
   res.setHeader("Cache-Control", "s-maxage=3600, stale-while-revalidate=86400");
-  const key = process.env.YOUTUBE_API_KEY;
-  const channelId = process.env.YOUTUBE_CHANNEL_ID;
-  try {
-    if (key && channelId) {
-      const channelResponse = await fetch(
-        `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${encodeURIComponent(channelId)}&key=${encodeURIComponent(key)}`,
-        { signal: AbortSignal.timeout(6000) },
-      );
-      if (!channelResponse.ok) throw new Error("YouTube API unavailable");
-      const channelData = (await channelResponse.json()) as {
-        items?: Array<{
-          contentDetails?: { relatedPlaylists?: { uploads?: string } };
-        }>;
-      };
-      const uploads =
-        channelData.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
-      if (!uploads) throw new Error("Uploads playlist missing");
-      const itemsResponse = await fetch(
-        `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${encodeURIComponent(uploads)}&key=${encodeURIComponent(key)}`,
-        { signal: AbortSignal.timeout(6000) },
-      );
-      if (!itemsResponse.ok) throw new Error("Uploads request failed");
-      const itemData = (await itemsResponse.json()) as {
-        items?: Array<{
-          snippet?: {
-            title?: string;
-            publishedAt?: string;
-            resourceId?: { videoId?: string };
-          };
-        }>;
-      };
-      const entries =
-        itemData.items?.flatMap((item) => {
-          const id = item.snippet?.resourceId?.videoId;
-          return id
-            ? [
-                {
-                  id,
-                  title: item.snippet?.title ?? "ShuzhFit video",
-                  publishedAt:
-                    item.snippet?.publishedAt ?? new Date(0).toISOString(),
-                },
-              ]
-            : [];
-        }) ?? [];
-      if (entries.length) {
-        const ids = entries.map((x) => x.id).join(",");
-        const detailsResponse = await fetch(
-          `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${encodeURIComponent(ids)}&key=${encodeURIComponent(key)}`,
-          { signal: AbortSignal.timeout(6000) },
-        );
-        if (!detailsResponse.ok)
-          throw new Error("Video details request failed");
-        const details = (await detailsResponse.json()) as {
-          items?: Array<{ id: string; contentDetails?: { duration?: string } }>;
-        };
-        const seconds = new Map(
-          (details.items ?? []).map((x) => [
-            x.id,
-            duration(x.contentDetails?.duration ?? ""),
-          ]),
-        );
-        const videos = entries.map((x) => {
-          const durationSeconds = seconds.get(x.id) ?? 0;
-          return {
-            id: x.id,
-            title: x.title,
-            thumbnail: `https://i.ytimg.com/vi/${x.id}/hqdefault.jpg`,
-            publishedAt: x.publishedAt,
-            durationSeconds,
-            isShort: durationSeconds > 0 && durationSeconds <= 60,
-            url: `https://www.youtube.com/watch?v=${x.id}`,
-          };
-        });
-        res.status(200).json({ videos });
-        return;
-      }
-    }
-    if (channelId) {
-      const videos = await rss(channelId);
-      if (videos.length) {
-        res.status(200).json({ videos });
-        return;
-      }
-    }
-    res.status(200).json({ videos: fallbackVideos.filter(isVideoRow) });
-  } catch {
+  const env = getYouTubeEnv();
+
+  if (env.apiKey && env.channelId) {
     try {
-      if (channelId) {
-        const videos = await rss(channelId);
-        if (videos.length) {
-          res.status(200).json({ videos });
-          return;
-        }
+      const videos = await loadFromApi(env.apiKey, env.channelId);
+      if (videos.length) {
+        res.status(200).json({ source: "api", videos });
+        return;
       }
-    } catch {
-      /* Static verified fallback below. */
+    } catch (error) {
+      console.error("YouTube Data API failed:", error instanceof Error ? error.message : String(error));
     }
-    res.status(200).json({ videos: fallbackVideos.filter(isVideoRow) });
   }
+
+  if (env.channelId) {
+    try {
+      const videos = await loadFromRss(env.channelId);
+      if (videos.length) {
+        res.status(200).json({ source: "rss", videos });
+        return;
+      }
+    } catch (error) {
+      console.error("YouTube RSS feed failed:", error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  res.status(200).json({ source: "static", videos: fallbackVideos });
 }

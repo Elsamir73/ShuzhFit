@@ -44,7 +44,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
     const user = { id: String(created.id), name: created.name, email: created.email, role: created.role === "admin" ? "admin" as const : "user" as const, onboarded: Boolean(created.onboardedAt) };
     setSessionCookie(res, await createAuthToken(user));
     res.status(201).json({ user });
-  } catch {
+  } catch (error) {
+    console.error("Registration failed:", error instanceof Error ? error.message : String(error));
     sendError(res, 500, "REGISTRATION_FAILED", "Unable to create your account right now.");
   }
 }

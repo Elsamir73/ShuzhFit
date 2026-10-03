@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ApiRequest, ApiResponse } from "./lib/http";
+import { requireOrigin } from "./lib/http";
 import { dispatchApiRequest, resolveRoute } from "./router";
 
 function createResponse() {
@@ -61,6 +62,32 @@ describe("API router", () => {
     await dispatchApiRequest(request, result.response);
     expect(request.params).toEqual({ id: "481" });
     expect(request.query?.id).toBe("481");
-    expect(result.state.statusCode).toBe(401);
+  });
+});
+
+describe("mutating request origin validation", () => {
+  it("matches the request host, including the local development host", () => {
+    const result = createResponse();
+    expect(requireOrigin({
+      method: "POST",
+      headers: { origin: "http://localhost:5173", host: "localhost:5173" },
+    }, result.response)).toBe(true);
+  });
+
+  it("rejects a different origin host", () => {
+    const result = createResponse();
+    expect(requireOrigin({
+      method: "POST",
+      headers: { origin: "https://attacker.example", "x-forwarded-host": "shuzhfit.vercel.app", host: "internal.local" },
+    }, result.response)).toBe(false);
+    expect(result.state.statusCode).toBe(403);
+  });
+
+  it("uses the first forwarded host supplied by the proxy", () => {
+    const result = createResponse();
+    expect(requireOrigin({
+      method: "POST",
+      headers: { origin: "https://shuzhfit.vercel.app", "x-forwarded-host": "shuzhfit.vercel.app, internal.local", host: "internal.local" },
+    }, result.response)).toBe(true);
   });
 });

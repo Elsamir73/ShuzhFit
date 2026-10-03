@@ -1,4 +1,5 @@
 import type { ApiHandler, ApiRequest, ApiResponse } from "./lib/http";
+import { requireServerEnv, ServerConfigurationError } from "./lib/env";
 import adminBlogs from "./routes/admin/blogs";
 import adminComments from "./routes/admin/comments";
 import adminExercises from "./routes/admin/exercises";
@@ -29,8 +30,10 @@ import workoutDetail from "./routes/workouts/[id]";
 import workoutExercises from "./routes/workouts/[id]/exercises";
 import workoutSets from "./routes/workouts/[id]/sets";
 import youtubeVideos from "./routes/youtube/videos";
+import health from "./routes/health";
 
 export const routeTable = new Map<string, ApiHandler>([
+  ["GET /api/health", health],
   ["GET /api/auth/me", authMe],
   ["POST /api/auth/login", authLogin],
   ["POST /api/auth/logout", authLogout],
@@ -182,9 +185,24 @@ export async function dispatchApiRequest(
     req.params = match.params;
     req.query = query;
 
+    const isYouTube = pathname === "/api/youtube/videos" || pathname === "/api/content/videos" || pathname === "/api/videos";
+    const isHealth = pathname === "/api/health";
+    if (!isYouTube && !isHealth) requireServerEnv("DATABASE_URL");
+    const jwtPaths = [
+      "/api/auth/", "/api/admin/", "/api/onboarding", "/api/nutrition",
+      "/api/profile", "/api/program", "/api/progress", "/api/today",
+      "/api/tracker/", "/api/workouts", "/api/content/favorites",
+      "/api/workouts/",
+    ];
+    if (jwtPaths.some((prefix) => pathname.startsWith(prefix))) requireServerEnv("JWT_SECRET");
+
     await match.handler(req, res);
-  } catch {
+  } catch (error) {
     if (!res.writableEnded) {
+      if (error instanceof ServerConfigurationError) {
+        res.status(500).json({ error: error.message });
+        return;
+      }
       res.status(500).json({
         error: {
           code: "INTERNAL_SERVER_ERROR",
