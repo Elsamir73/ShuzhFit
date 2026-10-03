@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateEstimatedOneRepMax, calculateGoalProgressToward, calculateStreak } from "./fitness";
+import { calculateEstimatedOneRepMax, calculateGoalProgressToward, calculateStreak } from "./fitness.js";
 
 describe("fitness calculations", () => {
   it("counts a streak through today or yesterday", () => {

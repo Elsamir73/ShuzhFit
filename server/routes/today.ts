@@ -1,8 +1,8 @@
 import { and, asc, desc, eq, gte } from "drizzle-orm";
 import { z } from "zod";
-import { calculateFitnessMetrics, calculateGoalProgressToward, calculateStreak, type FitnessGoal } from "../../shared/fitness";
-import { getTodayInsights } from "../lib/insights";
-import { requireAuth, parseBody, requireJson, requireOrigin, sendError, type ApiRequest, type ApiResponse } from "../lib/http";
+import { calculateFitnessMetrics, calculateGoalProgressToward, calculateStreak, type FitnessGoal } from "../../shared/fitness.js";
+import { getTodayInsights } from "../lib/insights.js";
+import { requireAuth, parseBody, requireJson, requireOrigin, sendError, type ApiRequest, type ApiResponse } from "../lib/http.js";
 import { sql } from "drizzle-orm";
 
 const quickLogSchema = z.discriminatedUnion("type", [
@@ -36,7 +36,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
   const userId = Number(user.id);
 
   try {
-    const [{ db }, schema] = await Promise.all([import("../../db"), import("../../db/schema")]);
+    const [{ db }, schema] = await Promise.all([import("../../db/index.js"), import("../../db/schema.js")]);
     const today = asDate(new Date());
     const todayIso = dateKey(today);
     if (req.method === "POST") {

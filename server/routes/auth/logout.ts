@@ -1,5 +1,5 @@
-import { clearSessionCookie } from "./_helpers";
-import { requireJson, requireOrigin, sendError, type ApiRequest, type ApiResponse } from "../../lib/http";
+import { clearSessionCookie } from "./_helpers.js";
+import { requireJson, requireOrigin, sendError, type ApiRequest, type ApiResponse } from "../../lib/http.js";
 
 export default function handler(req: ApiRequest, res: ApiResponse): void {
   if (req.method !== "POST") {

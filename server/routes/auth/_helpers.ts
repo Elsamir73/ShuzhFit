@@ -1,9 +1,9 @@
 import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
-import type { AuthUser } from "../../../shared/auth";
-import { requireServerEnv } from "../../lib/env";
+import type { AuthUser } from "../../../shared/auth.js";
+import { requireServerEnv } from "../../lib/env.js";
 
-export type { AuthRole, AuthUser } from "../../../shared/auth";
+export type { AuthRole, AuthUser } from "../../../shared/auth.js";
 
 function authSecret(): Uint8Array {
   return new TextEncoder().encode(requireServerEnv("JWT_SECRET"));
@@ -43,7 +43,7 @@ export async function verifyAuthToken(token: string): Promise<AuthUser> {
   };
 }
 
-export function setSessionCookie(res: import("../../lib/http").ApiResponse, token: string): void {
+export function setSessionCookie(res: import("../../lib/http.js").ApiResponse, token: string): void {
   res.setHeader("Set-Cookie", [
     `shuzhfit_session=${token}`,
     "Path=/",
@@ -54,6 +54,6 @@ export function setSessionCookie(res: import("../../lib/http").ApiResponse, toke
   ].join("; "));
 }
 
-export function clearSessionCookie(res: import("../../lib/http").ApiResponse): void {
+export function clearSessionCookie(res: import("../../lib/http.js").ApiResponse): void {
   res.setHeader("Set-Cookie", "shuzhfit_session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0");
 }

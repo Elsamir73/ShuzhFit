@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { createAuthToken, hashPassword, normalizeEmail, setSessionCookie } from "./_helpers";
-import { parseBody, requireJson, requireOrigin, sendError, type ApiRequest, type ApiResponse } from "../../lib/http";
+import { createAuthToken, hashPassword, normalizeEmail, setSessionCookie } from "./_helpers.js";
+import { parseBody, requireJson, requireOrigin, sendError, type ApiRequest, type ApiResponse } from "../../lib/http.js";
 
 const registerSchema = z.object({
   name: z.string().trim().min(2).max(120),
@@ -21,7 +21,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
   }
 
   try {
-    const [{ db }, schema] = await Promise.all([import("../../../db"), import("../../../db/schema")]);
+    const [{ db }, schema] = await Promise.all([import("../../../db/index.js"), import("../../../db/schema.js")]);
     const email = normalizeEmail(input.email);
     const passwordHash = await hashPassword(input.password);
     const [created] = await db.insert(schema.users).values({

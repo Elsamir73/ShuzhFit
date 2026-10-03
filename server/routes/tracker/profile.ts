@@ -1,5 +1,5 @@
-import { verifyAuthToken } from "../auth/_helpers";
-import { demoTrackerStore, readBody } from "./_demo-store";
+import { verifyAuthToken } from "../auth/_helpers.js";
+import { demoTrackerStore, readBody } from "./_demo-store.js";
 
 async function resolveSessionUser(req: any) {
   const cookie = req.headers.cookie ?? "";
@@ -26,9 +26,9 @@ export default async function handler(req: any, res: any) {
   if (req.method === "GET") {
     if (connectionString && sessionUser) {
       try {
-        const { db } = await import("../../../db");
+        const { db } = await import("../../../db/index.js");
         const { eq } = await import("drizzle-orm");
-        const schema = await import("../../../db/schema");
+        const schema = await import("../../../db/schema.js");
         const userId = Number(sessionUser.id);
         if (!Number.isNaN(userId)) {
           const [row] = await db
@@ -62,9 +62,9 @@ export default async function handler(req: any, res: any) {
     const body = readBody(req);
     if (connectionString && sessionUser) {
       try {
-        const { db } = await import("../../../db");
+        const { db } = await import("../../../db/index.js");
         const { eq } = await import("drizzle-orm");
-        const schema = await import("../../../db/schema");
+        const schema = await import("../../../db/schema.js");
         const userId = Number(sessionUser.id);
         if (!Number.isNaN(userId)) {
           const nextProfile = {

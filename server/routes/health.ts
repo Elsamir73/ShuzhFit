@@ -1,6 +1,6 @@
 import { count, sql } from "drizzle-orm";
-import { isEnvSet, requireServerEnv } from "../lib/env";
-import type { ApiRequest, ApiResponse } from "../lib/http";
+import { isEnvSet, requireServerEnv } from "../lib/env.js";
+import type { ApiRequest, ApiResponse } from "../lib/http.js";
 
 export default async function handler(_req: ApiRequest, res: ApiResponse): Promise<void> {
   let dbReady = false;
@@ -9,7 +9,7 @@ export default async function handler(_req: ApiRequest, res: ApiResponse): Promi
 
   try {
     requireServerEnv("DATABASE_URL");
-    const [{ db }, schema] = await Promise.all([import("../../db"), import("../../db/schema")]);
+    const [{ db }, schema] = await Promise.all([import("../../db/index.js"), import("../../db/schema.js")]);
     await db.execute(sql`select 1`);
     dbReady = true;
     try {

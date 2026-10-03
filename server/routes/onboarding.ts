@@ -1,8 +1,8 @@
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { requireAuth, parseBody, requireJson, requireOrigin, sendError, type ApiRequest, type ApiResponse } from "../lib/http";
-import { generateProgramDays } from "../../shared/program";
-import { calculateFitnessMetrics } from "../../shared/fitness";
+import { requireAuth, parseBody, requireJson, requireOrigin, sendError, type ApiRequest, type ApiResponse } from "../lib/http.js";
+import { generateProgramDays } from "../../shared/program.js";
+import { calculateFitnessMetrics } from "../../shared/fitness.js";
 
 const onboardingSchema = z.object({
   goal: z.enum(["fat_loss", "maintain", "muscle_gain"]),
@@ -32,7 +32,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
   if (!user) return;
 
   try {
-    const [{ db }, schema] = await Promise.all([import("../../db"), import("../../db/schema")]);
+    const [{ db }, schema] = await Promise.all([import("../../db/index.js"), import("../../db/schema.js")]);
     const [exerciseRows] = await Promise.all([
       db.select({ id: schema.exercises.id, name: schema.exercises.name, equipment: schema.exercises.equipment, level: schema.exercises.difficulty, muscles: schema.exercises.muscles })
         .from(schema.exercises).where(eq(schema.exercises.isPublished, true)),

@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { requireAuth, sendError, type ApiRequest, type ApiResponse } from "../../lib/http";
+import { requireAuth, sendError, type ApiRequest, type ApiResponse } from "../../lib/http.js";
 
 export default async function handler(req: ApiRequest, res: ApiResponse): Promise<void> {
   if (req.method !== "GET") {
@@ -9,7 +9,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
   const claims = await requireAuth(req, res);
   if (!claims) return;
   try {
-    const [{ db }, schema] = await Promise.all([import("../../../db"), import("../../../db/schema")]);
+    const [{ db }, schema] = await Promise.all([import("../../../db/index.js"), import("../../../db/schema.js")]);
     const [user] = await db.select({ id: schema.users.id, name: schema.users.name, email: schema.users.email, role: schema.users.role, onboardedAt: schema.users.onboardedAt })
       .from(schema.users).where(eq(schema.users.id, Number(claims.id))).limit(1);
     if (!user) {

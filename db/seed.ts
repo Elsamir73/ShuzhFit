@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
-import { blogs, commonFoods, exercises } from "./schema";
+import { blogs, commonFoods, exercises } from "./schema.js";
 
 const connectionString = process.env.DATABASE_URL;
 

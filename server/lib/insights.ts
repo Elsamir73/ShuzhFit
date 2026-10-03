@@ -1,4 +1,4 @@
-import type { FitnessGoal } from "../../shared/fitness";
+import type { FitnessGoal } from "../../shared/fitness.js";
 
 export interface WeightSample {
   date: string;

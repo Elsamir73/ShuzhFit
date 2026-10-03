@@ -1,6 +1,6 @@
 import { and, asc, eq, gte } from "drizzle-orm";
 import { z } from "zod";
-import { requireAuth, requireJson, requireOrigin, parseBody, sendError, type ApiRequest, type ApiResponse } from "../lib/http";
+import { requireAuth, requireJson, requireOrigin, parseBody, sendError, type ApiRequest, type ApiResponse } from "../lib/http.js";
 
 const value = (input: string | string[] | undefined) => Array.isArray(input) ? input[0] : input;
 const measurement = z.object({ id: z.number().int().positive().optional(), date: z.string().date(), weightKg: z.number().min(1).max(500).optional().nullable(), waistCm: z.number().min(1).max(300).optional().nullable(), bodyFatPct: z.number().min(0).max(100).optional().nullable(), notes: z.string().max(2000).optional() });
@@ -9,7 +9,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
   if (req.method !== "GET" && (!requireOrigin(req, res) || !requireJson(req, res))) return;
   const auth = await requireAuth(req, res); if (!auth) return; const userId = Number(auth.id);
   try {
-    const [{ db }, s] = await Promise.all([import("../../db"), import("../../db/schema")]);
+    const [{ db }, s] = await Promise.all([import("../../db/index.js"), import("../../db/schema.js")]);
     if (req.method === "GET") {
       const since = new Date(); since.setUTCDate(since.getUTCDate() - 56);
       const [entries, workouts, quickLogs, sets, profile] = await Promise.all([

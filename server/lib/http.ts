@@ -1,5 +1,5 @@
-import type { AuthUser } from "../../shared/auth";
-import { verifyAuthToken } from "../routes/auth/_helpers";
+import type { AuthUser } from "../../shared/auth.js";
+import { verifyAuthToken } from "../routes/auth/_helpers.js";
 
 export interface ApiRequest {
   method?: string;

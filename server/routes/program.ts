@@ -1,7 +1,7 @@
 import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { filterPlanExercises, generateProgramDays } from "../../shared/program";
-import { requireAuth, parseBody, requireJson, requireOrigin, sendError, type ApiRequest, type ApiResponse } from "../lib/http";
+import { filterPlanExercises, generateProgramDays } from "../../shared/program.js";
+import { requireAuth, parseBody, requireJson, requireOrigin, sendError, type ApiRequest, type ApiResponse } from "../lib/http.js";
 
 const updateSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("regenerate") }),
@@ -18,7 +18,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
   const user = await requireAuth(req, res);
   if (!user) return;
   try {
-    const [{ db }, schema] = await Promise.all([import("../../db"), import("../../db/schema")]);
+    const [{ db }, schema] = await Promise.all([import("../../db/index.js"), import("../../db/schema.js")]);
     const userId = Number(user.id);
     const [program] = await db.select().from(schema.programs).where(and(eq(schema.programs.userId, userId), eq(schema.programs.isActive, true))).limit(1);
     if (!program) {

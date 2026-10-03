@@ -1,6 +1,6 @@
 import { and, desc, eq, ne } from "drizzle-orm";
 import { z } from "zod";
-import { calculateEstimatedOneRepMax } from "../../../../shared/fitness";
+import { calculateEstimatedOneRepMax } from "../../../../shared/fitness.js";
 import {
   requireAuth,
   parseBody,
@@ -9,7 +9,7 @@ import {
   sendError,
   type ApiRequest,
   type ApiResponse,
-} from "../../../lib/http";
+} from "../../../lib/http.js";
 
 const addSetSchema = z.object({
   exerciseName: z.string().trim().min(1).max(200),
@@ -58,8 +58,8 @@ export default async function handler(
   }
   try {
     const [{ db }, schema] = await Promise.all([
-      import("../../../../db"),
-      import("../../../../db/schema"),
+      import("../../../../db/index.js"),
+      import("../../../../db/schema.js"),
     ]);
     const [workout] = await db
       .select({ id: schema.workouts.id, status: schema.workouts.status })

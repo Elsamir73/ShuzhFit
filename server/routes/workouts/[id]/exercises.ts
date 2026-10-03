@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { filterPlanExercises } from "../../../../shared/program";
+import { filterPlanExercises } from "../../../../shared/program.js";
 import {
   requireAuth,
   parseBody,
@@ -9,7 +9,7 @@ import {
   sendError,
   type ApiRequest,
   type ApiResponse,
-} from "../../../lib/http";
+} from "../../../lib/http.js";
 
 const addSchema = z
   .object({
@@ -69,8 +69,8 @@ export default async function handler(
   }
   try {
     const [{ db }, schema] = await Promise.all([
-      import("../../../../db"),
-      import("../../../../db/schema"),
+      import("../../../../db/index.js"),
+      import("../../../../db/schema.js"),
     ]);
     const [workout] = await db
       .select({ id: schema.workouts.id, status: schema.workouts.status })

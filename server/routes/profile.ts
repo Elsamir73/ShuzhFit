@@ -1,6 +1,6 @@
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { requireAuth, requireJson, requireOrigin, parseBody, sendError, type ApiRequest, type ApiResponse } from "../lib/http";
+import { requireAuth, requireJson, requireOrigin, parseBody, sendError, type ApiRequest, type ApiResponse } from "../lib/http.js";
 
 const value = (input: string | string[] | undefined) => Array.isArray(input) ? input[0] : input;
 const profileSchema = z.object({ name: z.string().trim().min(1).max(120), goalType: z.enum(["fat_loss","maintain","muscle_gain"]), sex: z.enum(["male","female","other"]), heightCm: z.number().int().min(100).max(250), ageYears: z.number().int().min(13).max(120), experience: z.enum(["beginner","intermediate","advanced"]), daysPerWeek: z.number().int().min(2).max(6), equipment: z.enum(["gym","home_dumbbells","bodyweight"]), activityLevel: z.number().min(1).max(2.5), targetWeightKg: z.number().min(20).max(500), weeklyWorkoutTarget: z.number().int().min(1).max(7) });
@@ -10,7 +10,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
   if(req.method!=="GET"&&(!requireOrigin(req,res)||!requireJson(req,res))) return;
   const auth=await requireAuth(req,res); if(!auth)return; const userId=Number(auth.id);
   try {
-    const [{db},s]=await Promise.all([import("../../db"),import("../../db/schema")]);
+    const [{db},s]=await Promise.all([import("../../db/index.js"),import("../../db/schema.js")]);
     if(req.method==="GET") {
       const [user,goals,progress,workouts,quick,sets,foods]=await Promise.all([
         db.select().from(s.users).where(eq(s.users.id,userId)).limit(1),

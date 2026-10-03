@@ -1,8 +1,8 @@
 import { and, asc, desc, eq, inArray, ne } from "drizzle-orm";
 import { z } from "zod";
-import { calculateEstimatedOneRepMax } from "../../shared/fitness";
-import { filterPlanExercises } from "../../shared/program";
-import { requireAuth, parseBody, requireJson, requireOrigin, sendError, type ApiRequest, type ApiResponse } from "../lib/http";
+import { calculateEstimatedOneRepMax } from "../../shared/fitness.js";
+import { filterPlanExercises } from "../../shared/program.js";
+import { requireAuth, parseBody, requireJson, requireOrigin, sendError, type ApiRequest, type ApiResponse } from "../lib/http.js";
 
 const startSchema = z.object({ programDayId: z.number().int().positive().optional(), name: z.string().trim().min(1).max(200).optional() });
 const finishSchema = z.discriminatedUnion("action", [
@@ -27,7 +27,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
   }
 
   try {
-    const [{ db }, schema] = await Promise.all([import("../../db"), import("../../db/schema")]);
+    const [{ db }, schema] = await Promise.all([import("../../db/index.js"), import("../../db/schema.js")]);
     if (req.method === "GET") {
       if (textQuery(req.query?.current) === "true") {
         const [activeWorkout] = await db.select().from(schema.workouts).where(and(eq(schema.workouts.userId, userId), eq(schema.workouts.status, "in_progress"))).limit(1);

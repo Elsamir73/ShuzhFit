@@ -1,1 +1,1 @@
-export { default } from "../youtube/videos";
+export { default } from "../youtube/videos.js";

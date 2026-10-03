@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { z } from "zod";
-import { requireAuth, requireJson, requireOrigin, parseBody, sendError, type ApiRequest, type ApiResponse } from "../lib/http";
+import { requireAuth, requireJson, requireOrigin, parseBody, sendError, type ApiRequest, type ApiResponse } from "../lib/http.js";
 
 const foodInput = z.object({ name: z.string().trim().min(1).max(200), calories: z.number().int().min(0).max(10000), proteinG: z.number().min(0).max(1000), carbsG: z.number().min(0).max(1000), fatG: z.number().min(0).max(1000), mealType: z.enum(["breakfast", "lunch", "dinner", "snack"]).default("snack"), date: z.string().date() });
 const queryValue = (value: string | string[] | undefined) => Array.isArray(value) ? value[0] : value;
@@ -9,7 +9,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
   if (req.method !== "GET" && (!requireOrigin(req, res) || !requireJson(req, res))) return;
   const auth = await requireAuth(req, res); if (!auth) return; const userId = Number(auth.id);
   try {
-    const [{ db }, s] = await Promise.all([import("../../db"), import("../../db/schema")]);
+    const [{ db }, s] = await Promise.all([import("../../db/index.js"), import("../../db/schema.js")]);
     const dateText = queryValue(req.query?.date) ?? new Date().toISOString().slice(0, 10);
     const date = new Date(`${dateText}T00:00:00.000Z`); if (Number.isNaN(date.getTime())) { sendError(res, 400, "INVALID_DATE", "Use a valid date."); return; }
     if (req.method === "GET") {

@@ -1,7 +1,7 @@
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
-import { createAuthToken, normalizeEmail, setSessionCookie, verifyPassword } from "./_helpers";
-import { header, parseBody, requireJson, requireOrigin, sendError, type ApiRequest, type ApiResponse } from "../../lib/http";
+import { createAuthToken, normalizeEmail, setSessionCookie, verifyPassword } from "./_helpers.js";
+import { header, parseBody, requireJson, requireOrigin, sendError, type ApiRequest, type ApiResponse } from "../../lib/http.js";
 
 const loginSchema = z.object({ email: z.string().trim().email().max(255), password: z.string().min(8).max(128) });
 const INVALID_CREDENTIALS = "Invalid email or password";
@@ -24,7 +24,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
   }
 
   try {
-    const [{ db }, schema] = await Promise.all([import("../../../db"), import("../../../db/schema")]);
+    const [{ db }, schema] = await Promise.all([import("../../../db/index.js"), import("../../../db/schema.js")]);
     const email = normalizeEmail(input.email);
     const ipAddress = clientIp(req).slice(0, 64);
     const [attempt] = await db.select().from(schema.loginAttempts).where(and(

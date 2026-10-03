@@ -1,4 +1,4 @@
-import { verifyAuthToken } from "../auth/_helpers";
+import { verifyAuthToken } from "../auth/_helpers.js";
 
 export async function requireAdmin(req: any, res: any) {
   const cookie = req.headers.cookie ?? "";

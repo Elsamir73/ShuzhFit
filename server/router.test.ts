@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { ApiRequest, ApiResponse } from "./lib/http";
-import { requireOrigin } from "./lib/http";
-import { dispatchApiRequest, resolveRoute } from "./router";
+import type { ApiRequest, ApiResponse } from "./lib/http.js";
+import { requireOrigin } from "./lib/http.js";
+import { dispatchApiRequest, resolveRoute } from "./router.js";
 
 function createResponse() {
   const state: { statusCode: number; body: unknown } = {

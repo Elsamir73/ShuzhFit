@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, inArray, ne } from "drizzle-orm";
-import { getNextSetTarget } from "../../../shared/progression";
-import { calculateEstimatedOneRepMax } from "../../../shared/fitness";
-import { requireAuth, sendError, type ApiRequest, type ApiResponse } from "../../lib/http";
+import { getNextSetTarget } from "../../../shared/progression.js";
+import { calculateEstimatedOneRepMax } from "../../../shared/fitness.js";
+import { requireAuth, sendError, type ApiRequest, type ApiResponse } from "../../lib/http.js";
 
 const first = (value: string | string[] | undefined) => Array.isArray(value) ? value[0] : value;
 const numeric = (value: string | number | null | undefined) => Number(value ?? 0);
@@ -21,7 +21,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
   }
 
   try {
-    const [{ db }, schema] = await Promise.all([import("../../../db"), import("../../../db/schema")]);
+    const [{ db }, schema] = await Promise.all([import("../../../db/index.js"), import("../../../db/schema.js")]);
     const [workout] = await db.select().from(schema.workouts).where(and(eq(schema.workouts.id, workoutId), eq(schema.workouts.userId, userId))).limit(1);
     if (!workout) {
       sendError(res, 404, "WORKOUT_NOT_FOUND", "Workout not found.");

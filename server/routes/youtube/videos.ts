@@ -1,7 +1,7 @@
-import { fallbackVideos } from "../../../shared/fallbackVideos";
-import { getYouTubeEnv } from "../../lib/env";
-import type { ApiRequest, ApiResponse } from "../../lib/http";
-import { sendError } from "../../lib/http";
+import { fallbackVideos } from "../../../shared/fallbackVideos.js";
+import { getYouTubeEnv } from "../../lib/env.js";
+import type { ApiRequest, ApiResponse } from "../../lib/http.js";
+import { sendError } from "../../lib/http.js";
 
 type Video = (typeof fallbackVideos)[number];
 
