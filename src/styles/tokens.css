@@ -1,0 +1,146 @@
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+@import "@fontsource/anton/400.css";
+@import "@fontsource/space-mono/400.css";
+@import "@fontsource/space-mono/700.css";
+
+:root {
+  --bg: #242424;
+  --surface: #2e2e2e;
+  --surface-2: #383838;
+  --border: rgba(255, 255, 255, 0.1);
+  --text: #f4f1ea;
+  --muted: #b9b6ae;
+  --brand: #ff5a36;
+  --brand-strong: #ff3d1e;
+  --accent: var(--brand);
+  --accent-2: #ffd4ca;
+  --paper: #f4f1ea;
+  --ink: #1b1b1b;
+  --shadow: 0 24px 60px rgba(0, 0, 0, 0.24);
+  --radius: 18px;
+  --container: 1200px;
+  --radius-sm: 12px;
+  --radius-lg: 22px;
+  --space-1: 8px;
+  --space-2: 12px;
+  --space-3: 16px;
+  --space-4: 20px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 40px;
+  --header-height: 80px;
+}
+
+html {
+  color-scheme: dark;
+  font-family: "Inter", "Segoe UI", sans-serif;
+  font-weight: 400;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Inter", "Segoe UI", sans-serif;
+  font-weight: 400;
+  line-height: 1.6;
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(255, 90, 54, 0.22),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at top right,
+      rgba(255, 255, 255, 0.07),
+      transparent 25%
+    ),
+    var(--bg);
+  color: var(--text);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.brand,
+.kicker,
+.stat-label,
+.tape-badge {
+  font-family: "Anton", "Arial Black", sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+p,
+li,
+button,
+input,
+select,
+textarea,
+a,
+label {
+  font-family: "Inter", "Segoe UI", sans-serif;
+  font-weight: 400;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.container {
+  width: min(var(--container), calc(100% - 32px));
+  margin: 0 auto;
+}
+
+.page {
+  padding: 28px 0;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.btn,
+button {
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.btn:hover,
+button:hover {
+  transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
