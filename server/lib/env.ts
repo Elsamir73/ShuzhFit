@@ -1,9 +1,14 @@
 import { z } from "zod";
 
 const serverEnvSchema = z.object({
-  DATABASE_URL: z.string().url().refine(
-    (value) => value.startsWith("postgres://") || value.startsWith("postgresql://"),
-  ).optional(),
+  DATABASE_URL: z
+    .string()
+    .url()
+    .refine(
+      (value) =>
+        value.startsWith("postgres://") || value.startsWith("postgresql://"),
+    )
+    .optional(),
   JWT_SECRET: z.string().min(32).optional(),
   YOUTUBE_API_KEY: z.string().trim().min(1).optional(),
   YOUTUBE_CHANNEL_ID: z.string().trim().min(1).optional(),
@@ -26,25 +31,36 @@ function validatedEnv(): ServerEnv {
   // Required and optional values have different failure behavior: retain valid
   // values, while treating invalid optional YouTube settings as absent.
   return {
-    DATABASE_URL: serverEnvSchema.shape.DATABASE_URL.safeParse(process.env.DATABASE_URL).success
+    DATABASE_URL: serverEnvSchema.shape.DATABASE_URL.safeParse(
+      process.env.DATABASE_URL,
+    ).success
       ? process.env.DATABASE_URL
       : undefined,
-    JWT_SECRET: serverEnvSchema.shape.JWT_SECRET.safeParse(process.env.JWT_SECRET).success
+    JWT_SECRET: serverEnvSchema.shape.JWT_SECRET.safeParse(
+      process.env.JWT_SECRET,
+    ).success
       ? process.env.JWT_SECRET
       : undefined,
-    YOUTUBE_API_KEY: serverEnvSchema.shape.YOUTUBE_API_KEY.safeParse(process.env.YOUTUBE_API_KEY).success
+    YOUTUBE_API_KEY: serverEnvSchema.shape.YOUTUBE_API_KEY.safeParse(
+      process.env.YOUTUBE_API_KEY,
+    ).success
       ? process.env.YOUTUBE_API_KEY?.trim()
       : undefined,
-    YOUTUBE_CHANNEL_ID: serverEnvSchema.shape.YOUTUBE_CHANNEL_ID.safeParse(process.env.YOUTUBE_CHANNEL_ID).success
+    YOUTUBE_CHANNEL_ID: serverEnvSchema.shape.YOUTUBE_CHANNEL_ID.safeParse(
+      process.env.YOUTUBE_CHANNEL_ID,
+    ).success
       ? process.env.YOUTUBE_CHANNEL_ID?.trim()
       : undefined,
   };
 }
 
 export class ServerConfigurationError extends Error {
-  constructor(readonly variableName: "DATABASE_URL" | "JWT_SECRET") {
+  readonly variableName: "DATABASE_URL" | "JWT_SECRET";
+
+  constructor(variableName: "DATABASE_URL" | "JWT_SECRET") {
     super(`Server not configured: ${variableName}`);
     this.name = "ServerConfigurationError";
+    this.variableName = variableName;
   }
 }
 
@@ -69,7 +85,9 @@ export function getYouTubeEnv(): {
   };
 }
 
-export function isEnvSet(name: "JWT_SECRET" | "YOUTUBE_API_KEY" | "YOUTUBE_CHANNEL_ID"): boolean {
+export function isEnvSet(
+  name: "JWT_SECRET" | "YOUTUBE_API_KEY" | "YOUTUBE_CHANNEL_ID",
+): boolean {
   const env = validatedEnv();
   return Boolean(env[name]);
 }
