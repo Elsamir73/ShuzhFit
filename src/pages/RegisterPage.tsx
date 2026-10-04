@@ -6,10 +6,10 @@ import { authenticateUser } from "../lib/auth";
 
 export function RegisterPage() {
   const navigate = useNavigate();
-  const [name, setName] = useState("Jordan Smith");
-  const [email, setEmail] = useState("member@shuzhfit.com");
-  const [password, setPassword] = useState("password123");
-  const [confirmPassword, setConfirmPassword] = useState("password123");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
