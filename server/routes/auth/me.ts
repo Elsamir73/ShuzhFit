@@ -1,9 +1,16 @@
 import { eq } from "drizzle-orm";
-import { requireAuth, sendError, type ApiRequest, type ApiResponse } from "../../lib/http.js";
+import { header, requireAuth, sendError, type ApiRequest, type ApiResponse } from "../../lib/http.js";
 
 export default async function handler(req: ApiRequest, res: ApiResponse): Promise<void> {
   if (req.method !== "GET") {
     sendError(res, 405, "METHOD_NOT_ALLOWED", "Method not allowed.");
+    return;
+  }
+  const hasSessionCookie = header(req, "cookie")
+    ?.split(";")
+    .some((part) => part.trim().startsWith("shuzhfit_session="));
+  if (!hasSessionCookie) {
+    res.status(200).json({ user: null });
     return;
   }
   const claims = await requireAuth(req, res);

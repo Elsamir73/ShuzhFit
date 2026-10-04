@@ -1,4 +1,4 @@
-import type { ApiHandler, ApiRequest, ApiResponse } from "./lib/http.js";
+import { header, type ApiHandler, type ApiRequest, type ApiResponse } from "./lib/http.js";
 import { requireServerEnv, ServerConfigurationError } from "./lib/env.js";
 import adminBlogs from "./routes/admin/blogs.js";
 import adminComments from "./routes/admin/comments.js";
@@ -33,71 +33,71 @@ import youtubeVideos from "./routes/youtube/videos.js";
 import health from "./routes/health.js";
 
 export const routeTable = new Map<string, ApiHandler>([
-  ["GET /api/health", health],
-  ["GET /api/auth/me", authMe],
-  ["POST /api/auth/login", authLogin],
-  ["POST /api/auth/logout", authLogout],
-  ["POST /api/auth/register", authRegister],
-  ["GET /api/admin/blogs", adminBlogs],
-  ["POST /api/admin/blogs", adminBlogs],
-  ["GET /api/admin/comments", adminComments],
-  ["DELETE /api/admin/comments", adminComments],
-  ["GET /api/admin/exercises", adminExercises],
-  ["POST /api/admin/exercises", adminExercises],
-  ["GET /api/admin/messages", adminMessages],
-  ["DELETE /api/admin/messages", adminMessages],
-  ["GET /api/admin/videos", adminVideos],
-  ["POST /api/admin/videos", adminVideos],
-  ["POST /api/contact", contact],
-  ["GET /api/content/blogs", contentBlogs],
-  ["GET /api/blogs", contentBlogs],
-  ["GET /api/content/comments", contentComments],
-  ["POST /api/content/comments", contentComments],
-  ["GET /api/comments", contentComments],
-  ["POST /api/comments", contentComments],
-  ["GET /api/content/exercises", contentExercises],
-  ["GET /api/exercises", contentExercises],
-  ["GET /api/content/favorites", favorites],
-  ["POST /api/content/favorites", favorites],
-  ["DELETE /api/content/favorites", favorites],
-  ["GET /api/content/videos", youtubeVideos],
-  ["GET /api/youtube/videos", youtubeVideos],
-  ["GET /api/videos", youtubeVideos],
-  ["GET /api/nutrition", nutrition],
-  ["POST /api/nutrition", nutrition],
-  ["PATCH /api/nutrition", nutrition],
-  ["DELETE /api/nutrition", nutrition],
-  ["POST /api/onboarding", onboarding],
-  ["GET /api/profile", profile],
-  ["PATCH /api/profile", profile],
-  ["POST /api/profile", profile],
-  ["DELETE /api/profile", profile],
-  ["GET /api/program", program],
-  ["PATCH /api/program", program],
-  ["GET /api/progress", progress],
-  ["POST /api/progress", progress],
-  ["PATCH /api/progress", progress],
-  ["DELETE /api/progress", progress],
-  ["GET /api/search", search],
-  ["GET /api/today", today],
-  ["POST /api/today", today],
-  ["GET /api/tracker/nutrition", trackerNutrition],
-  ["POST /api/tracker/nutrition", trackerNutrition],
-  ["GET /api/tracker/profile", trackerProfile],
-  ["POST /api/tracker/profile", trackerProfile],
-  ["GET /api/tracker/progress", trackerProgress],
-  ["POST /api/tracker/progress", trackerProgress],
-  ["GET /api/tracker/workouts", trackerWorkouts],
-  ["POST /api/tracker/workouts", trackerWorkouts],
-  ["GET /api/workouts", workout],
-  ["POST /api/workouts", workout],
-  ["PATCH /api/workouts", workout],
-  ["DELETE /api/workouts", workout],
-  ["GET /api/workouts/:id", workoutDetail],
-  ["POST /api/workouts/:id/exercises", workoutExercises],
-  ["DELETE /api/workouts/:id/exercises", workoutExercises],
-  ["POST /api/workouts/:id/sets", workoutSets],
-  ["DELETE /api/workouts/:id/sets", workoutSets],
+  ["GET /health", health],
+  ["GET /auth/me", authMe],
+  ["POST /auth/login", authLogin],
+  ["POST /auth/logout", authLogout],
+  ["POST /auth/register", authRegister],
+  ["GET /admin/blogs", adminBlogs],
+  ["POST /admin/blogs", adminBlogs],
+  ["GET /admin/comments", adminComments],
+  ["DELETE /admin/comments", adminComments],
+  ["GET /admin/exercises", adminExercises],
+  ["POST /admin/exercises", adminExercises],
+  ["GET /admin/messages", adminMessages],
+  ["DELETE /admin/messages", adminMessages],
+  ["GET /admin/videos", adminVideos],
+  ["POST /admin/videos", adminVideos],
+  ["POST /contact", contact],
+  ["GET /content/blogs", contentBlogs],
+  ["GET /blogs", contentBlogs],
+  ["GET /content/comments", contentComments],
+  ["POST /content/comments", contentComments],
+  ["GET /comments", contentComments],
+  ["POST /comments", contentComments],
+  ["GET /content/exercises", contentExercises],
+  ["GET /exercises", contentExercises],
+  ["GET /content/favorites", favorites],
+  ["POST /content/favorites", favorites],
+  ["DELETE /content/favorites", favorites],
+  ["GET /content/videos", youtubeVideos],
+  ["GET /youtube/videos", youtubeVideos],
+  ["GET /videos", youtubeVideos],
+  ["GET /nutrition", nutrition],
+  ["POST /nutrition", nutrition],
+  ["PATCH /nutrition", nutrition],
+  ["DELETE /nutrition", nutrition],
+  ["POST /onboarding", onboarding],
+  ["GET /profile", profile],
+  ["PATCH /profile", profile],
+  ["POST /profile", profile],
+  ["DELETE /profile", profile],
+  ["GET /program", program],
+  ["PATCH /program", program],
+  ["GET /progress", progress],
+  ["POST /progress", progress],
+  ["PATCH /progress", progress],
+  ["DELETE /progress", progress],
+  ["GET /search", search],
+  ["GET /today", today],
+  ["POST /today", today],
+  ["GET /tracker/nutrition", trackerNutrition],
+  ["POST /tracker/nutrition", trackerNutrition],
+  ["GET /tracker/profile", trackerProfile],
+  ["POST /tracker/profile", trackerProfile],
+  ["GET /tracker/progress", trackerProgress],
+  ["POST /tracker/progress", trackerProgress],
+  ["GET /tracker/workouts", trackerWorkouts],
+  ["POST /tracker/workouts", trackerWorkouts],
+  ["GET /workouts", workout],
+  ["POST /workouts", workout],
+  ["PATCH /workouts", workout],
+  ["DELETE /workouts", workout],
+  ["GET /workouts/:id", workoutDetail],
+  ["POST /workouts/:id/exercises", workoutExercises],
+  ["DELETE /workouts/:id/exercises", workoutExercises],
+  ["POST /workouts/:id/sets", workoutSets],
+  ["DELETE /workouts/:id/sets", workoutSets],
 ]);
 
 export type RouteMatch = {
@@ -156,12 +156,29 @@ export function resolveRoute(method: string, pathname: string): RouteMatch {
   return { params, allowedMethods: [...allowedMethods] };
 }
 
-function requestPath(req: ApiRequest): {
-  pathname: string;
-  query: URLSearchParams;
-} {
-  const requestUrl = new URL(req.url ?? "/api", "http://localhost");
-  return { pathname: requestUrl.pathname, query: requestUrl.searchParams };
+function requestHeader(req: ApiRequest, name: string): string | undefined {
+  const entry = Object.entries(req.headers).find(([key]) => key.toLowerCase() === name);
+  const value = entry?.[1];
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export function originalApiUrl(req: ApiRequest): string {
+  let source = req.url ?? "/api";
+  const initialPath = source.split("?", 1)[0];
+  if (initialPath === "/api" || initialPath === "/api/") {
+    for (const name of ["x-forwarded-uri", "x-matched-path", "x-vercel-forwarded-url"]) {
+      const forwarded = requestHeader(req, name);
+      if (forwarded) {
+        source = forwarded;
+        break;
+      }
+    }
+  }
+
+  const parsed = new URL(source, "http://localhost");
+  let pathname = parsed.pathname.replace(/^\/api(?=\/|$)/, "");
+  pathname = pathname.replace(/\/+$/, "") || "/";
+  return `${pathname}${parsed.search}`;
 }
 
 export async function dispatchApiRequest(
@@ -169,7 +186,9 @@ export async function dispatchApiRequest(
   res: ApiResponse,
 ): Promise<void> {
   try {
-    const { pathname, query: urlQuery } = requestPath(req);
+    const normalizedUrl = new URL(originalApiUrl(req), "http://localhost");
+    const pathname = normalizedUrl.pathname;
+    const urlQuery = normalizedUrl.searchParams;
     const match = resolveRoute(req.method ?? "GET", pathname);
     if (!match.handler) {
       if (match.allowedMethods.length > 0) {
@@ -185,16 +204,18 @@ export async function dispatchApiRequest(
     req.params = match.params;
     req.query = query;
 
-    const isYouTube = pathname === "/api/youtube/videos" || pathname === "/api/content/videos" || pathname === "/api/videos";
-    const isHealth = pathname === "/api/health";
-    if (!isYouTube && !isHealth) requireServerEnv("DATABASE_URL");
+    const isYouTube = pathname === "/youtube/videos" || pathname === "/content/videos" || pathname === "/videos";
+    const isHealth = pathname === "/health";
+    const isLoggedOutSessionCheck = req.method?.toUpperCase() === "GET" && pathname === "/auth/me" &&
+      !header(req, "cookie")?.split(";").some((part) => part.trim().startsWith("shuzhfit_session="));
+    if (!isYouTube && !isHealth && !isLoggedOutSessionCheck) requireServerEnv("DATABASE_URL");
     const jwtPaths = [
-      "/api/auth/", "/api/admin/", "/api/onboarding", "/api/nutrition",
-      "/api/profile", "/api/program", "/api/progress", "/api/today",
-      "/api/tracker/", "/api/workouts", "/api/content/favorites",
-      "/api/workouts/",
+      "/auth/", "/admin/", "/onboarding", "/nutrition",
+      "/profile", "/program", "/progress", "/today",
+      "/tracker/", "/workouts", "/content/favorites",
+      "/workouts/",
     ];
-    if (jwtPaths.some((prefix) => pathname.startsWith(prefix))) requireServerEnv("JWT_SECRET");
+    if (!isLoggedOutSessionCheck && jwtPaths.some((prefix) => pathname.startsWith(prefix))) requireServerEnv("JWT_SECRET");
 
     await match.handler(req, res);
   } catch (error) {

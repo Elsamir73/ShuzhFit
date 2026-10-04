@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ApiRequest, ApiResponse } from "./lib/http.js";
 import { requireOrigin } from "./lib/http.js";
-import { dispatchApiRequest, resolveRoute } from "./router.js";
+import { dispatchApiRequest, originalApiUrl, resolveRoute, routeTable } from "./router.js";
 
 function createResponse() {
   const state: { statusCode: number; body: unknown } = {
@@ -30,12 +30,33 @@ function createRequest(method: string, url: string): ApiRequest {
 }
 
 describe("API router", () => {
-  it("maps the smoke-test aliases and preserves dynamic parameters", () => {
-    expect(resolveRoute("GET", "/api/exercises").handler).toBeDefined();
-    expect(resolveRoute("GET", "/api/youtube/videos").handler).toBeDefined();
-    expect(resolveRoute("GET", "/api/workouts/481").params).toEqual({
-      id: "481",
-    });
+  it.each([
+    ["GET", "/api/health", "GET /health"],
+    ["POST", "/api/auth/register", "POST /auth/register"],
+    ["POST", "/api/auth/register/", "POST /auth/register"],
+    ["GET", "/api/auth/me?x=1", "GET /auth/me"],
+    ["GET", "/api/workouts/12", "GET /workouts/:id"],
+  ])("routes %s %s to %s", (method, url, routeKey) => {
+    const request = createRequest(method, url);
+    const routeUrl = new URL(originalApiUrl(request), "http://localhost");
+    expect(resolveRoute(method, routeUrl.pathname).handler).toBe(routeTable.get(routeKey));
+  });
+
+  it("uses Vercel's original-path headers when the rewritten URL is /api", () => {
+    const request: ApiRequest = {
+      method: "POST",
+      url: "/api",
+      headers: { "x-matched-path": "/api/auth/register/" },
+    };
+    expect(originalApiUrl(request)).toBe("/auth/register");
+    expect(resolveRoute("POST", originalApiUrl(request)).handler).toBe(routeTable.get("POST /auth/register"));
+  });
+
+  it("returns a null user for a logged-out session check", async () => {
+    const result = createResponse();
+    await dispatchApiRequest(createRequest("GET", "/api/auth/me?x=1"), result.response);
+    expect(result.state.statusCode).toBe(200);
+    expect(result.state.body).toEqual({ user: null });
   });
 
   it("returns the required JSON for unknown paths and unsupported methods", async () => {
