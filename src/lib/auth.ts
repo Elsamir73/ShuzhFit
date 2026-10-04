@@ -23,11 +23,22 @@ export function setCurrentUser(user: AuthUser): void {
   publish(user);
 }
 
-async function readError(response: Response): Promise<string> {
+async function readError(response: Response, isRegister: boolean): Promise<string> {
   const body = await response.json().catch(() => null) as { error?: string | { message?: string } } | null;
-  if (typeof body?.error === "string") return body.error;
-  if (typeof body?.error === "object" && body.error?.message) return body.error.message;
-  return "Authentication failed.";
+  const serverMessage = typeof body?.error === "string"
+    ? body.error
+    : typeof body?.error === "object"
+      ? body.error.message
+      : undefined;
+
+  if (isRegister && response.status === 409) {
+    return "An account with this email already exists";
+  }
+  if (response.status === 400 && serverMessage) return serverMessage;
+  if (response.status === 403 || response.status >= 500) {
+    return "Something went wrong, please try again.";
+  }
+  return serverMessage ?? "Something went wrong, please try again.";
 }
 
 export async function loadCurrentUser(): Promise<AuthUser | null> {
@@ -60,7 +71,7 @@ export async function authenticateUser({ email, password, name, isRegister = fal
       ? { name: name?.trim() ?? "", email: email.trim().toLowerCase(), password }
       : { email: email.trim().toLowerCase(), password }),
   });
-  if (!response.ok) throw new Error(await readError(response));
+  if (!response.ok) throw new Error(await readError(response, isRegister));
   const data = await response.json() as { user?: AuthUser };
   if (!data.user) throw new Error("Authentication response did not include a user.");
   publish(data.user);
@@ -74,6 +85,6 @@ export async function logoutUser(): Promise<void> {
     credentials: "same-origin",
     body: "{}",
   });
-  if (!response.ok) throw new Error(await readError(response));
+  if (!response.ok) throw new Error(await readError(response, false));
   publish(null);
 }

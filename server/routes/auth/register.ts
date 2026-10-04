@@ -1,11 +1,11 @@
 import { z } from "zod";
 import { createAuthToken, hashPassword, normalizeEmail, setSessionCookie } from "./_helpers.js";
-import { parseBody, requireJson, requireOrigin, sendError, type ApiRequest, type ApiResponse } from "../../lib/http.js";
+import { requireJson, requireOrigin, sendError, type ApiRequest, type ApiResponse } from "../../lib/http.js";
 
 const registerSchema = z.object({
-  name: z.string().trim().min(2).max(120),
-  email: z.string().trim().email().max(255),
-  password: z.string().min(8).max(128),
+  name: z.string({ error: "Enter your name." }).trim().min(2, "Name must be at least 2 characters.").max(120, "Name must be 120 characters or fewer."),
+  email: z.string({ error: "Enter your email address." }).trim().email("Enter a valid email address.").max(255, "Email must be 255 characters or fewer."),
+  password: z.string({ error: "Enter a password." }).min(8, "Use at least 8 characters for your password.").max(128, "Use no more than 128 characters for your password."),
 });
 
 export default async function handler(req: ApiRequest, res: ApiResponse): Promise<void> {
@@ -14,18 +14,18 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
     return;
   }
   if (!requireOrigin(req, res) || !requireJson(req, res)) return;
-  const input = parseBody(registerSchema, req.body);
-  if (!input) {
-    sendError(res, 400, "INVALID_INPUT", "Name, email, and a password of at least 8 characters are required.");
+  const input = registerSchema.safeParse(req.body);
+  if (!input.success) {
+    sendError(res, 400, "INVALID_INPUT", input.error.issues[0]?.message ?? "Check your registration details.");
     return;
   }
 
   try {
     const [{ db }, schema] = await Promise.all([import("../../../db/index.js"), import("../../../db/schema.js")]);
-    const email = normalizeEmail(input.email);
-    const passwordHash = await hashPassword(input.password);
+    const email = normalizeEmail(input.data.email);
+    const passwordHash = await hashPassword(input.data.password);
     const [created] = await db.insert(schema.users).values({
-      name: input.name,
+      name: input.data.name,
       email,
       passwordHash,
       role: "user",

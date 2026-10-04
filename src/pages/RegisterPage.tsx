@@ -17,13 +17,18 @@ export function RegisterPage() {
     event.preventDefault();
     setError("");
 
-    if (password.trim() !== confirmPassword.trim()) {
+    if (password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
     }
 
-    if (password.trim().length < 8) {
+    if (password.length < 8) {
       setError("Use at least 8 characters for your password.");
+      return;
+    }
+
+    if (password.length > 128) {
+      setError("Use no more than 128 characters for your password.");
       return;
     }
 
@@ -91,9 +96,10 @@ export function RegisterPage() {
               </label>
 
               <label className="field">
-                <span>Password</span>
+                <span>Password (8–128 characters)</span>
                 <input
                   type="password"
+                  maxLength={128}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   required
