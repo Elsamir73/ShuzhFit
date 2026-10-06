@@ -329,6 +329,36 @@ const exerciseSeed = [
   },
 ];
 
+const exerciseGuides: Record<string, { muscleGroup: string; repUnit?: string; steps: string[]; tips: string[]; mistakesList: string[] }> = {
+  "barbell-back-squat": { muscleGroup: "legs", steps: ["Set the bar across your upper back and grip it evenly.", "Stand with feet about shoulder width apart.", "Brace your trunk and keep your whole foot grounded.", "Bend your hips and knees to lower under control.", "Keep your knees tracking in line with your toes.", "Descend only as far as you can keep a steady torso.", "Drive through the floor to stand tall."], tips: ["Start light and build gradually.", "Use rack safeties or a spotter for heavy sets.", "Breathe in before each descent."], mistakesList: ["Knees collapsing inward.", "Heels lifting from the floor.", "Rushing the descent."] },
+  "bench-press": { muscleGroup: "chest", steps: ["Lie with your eyes below the bar.", "Plant both feet and draw your shoulder blades back.", "Grip the bar evenly just wider than shoulder width.", "Unrack with straight arms over your chest.", "Lower the bar toward your mid chest with control.", "Keep wrists stacked above your elbows.", "Press up while keeping your shoulders set."], tips: ["Start light and practice a steady touch point.", "Use safeties or a spotter for heavy sets.", "Keep your feet planted throughout each rep."], mistakesList: ["Bouncing the bar off your chest.", "Letting wrists fold backward.", "Lifting hips from the bench."] },
+};
+
+const muscleGroupFor = (exercise: typeof exerciseSeed[number]) => {
+  const text = `${exercise.slug} ${exercise.muscles} ${exercise.category}`.toLowerCase();
+  if (/squat|lunge|leg|hip-thrust/.test(text)) return "legs";
+  if (/chest|bench|dip|push-up|push/.test(text)) return "chest";
+  if (/shoulder|overhead/.test(text)) return "shoulders";
+  if (/core|plank|hollow/.test(text)) return "core";
+  if (/arm|curl|tricep/.test(text)) return "arms";
+  if (/full-body|squat-to-press|carry|swing/.test(text)) return "full_body";
+  return "back";
+};
+
+const enrichedExerciseSeed = exerciseSeed.map((exercise) => {
+  const guide = exerciseGuides[exercise.slug];
+  const muscleGroup = guide?.muscleGroup ?? muscleGroupFor(exercise);
+  const steps = guide?.steps ?? [
+    `Set up for the ${exercise.name} with a stable stance and a light load.`,
+    "Brace your trunk and keep your joints in a comfortable position.",
+    "Begin the movement slowly while maintaining control.",
+    "Move through a comfortable range without forcing the position.",
+    "Keep the target muscles engaged throughout the repetition.",
+    "Return to the starting position under control.",
+  ];
+  return { ...exercise, muscleGroup, steps, tips: guide?.tips ?? ["Start with a load you can control.", "Move smoothly and breathe steadily.", "Stop if you feel sharp or unusual pain."], mistakesList: guide?.mistakesList ?? ["Using momentum to move the load.", "Cutting the movement short.", "Choosing more weight than you can control."], repUnit: exercise.slug === "farmer-carry" ? "meters" : ["plank", "hollow-hold"].includes(exercise.slug) ? "seconds" : "reps" };
+});
+
 const blogSeed = [
   {
     slug: "simple-strength-rules",
@@ -371,11 +401,11 @@ const commonFoodSeed = [
 
 async function main() {
   await Promise.all(
-    exerciseSeed.map((exercise) =>
+    enrichedExerciseSeed.map((exercise) =>
       db
         .insert(exercises)
         .values(exercise)
-        .onConflictDoNothing({ target: exercises.slug })
+        .onConflictDoUpdate({ target: exercises.slug, set: exercise })
         .execute(),
     ),
   );
@@ -398,7 +428,7 @@ async function main() {
   );
 
   console.log(
-    `Seeded ${exerciseSeed.length} exercises, ${blogSeed.length} blog posts, and ${commonFoodSeed.length} common foods.`,
+    `Seeded ${enrichedExerciseSeed.length} exercises, ${blogSeed.length} blog posts, and ${commonFoodSeed.length} common foods.`,
   );
 }
 

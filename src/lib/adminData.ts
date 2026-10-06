@@ -5,8 +5,8 @@ import {
 } from "./content";
 import DOMPurify from "dompurify";
 
-export type ExerciseItem = (typeof defaultExercises)[number];
-export type BlogItem = (typeof defaultBlogPosts)[number];
+export type ExerciseItem = (typeof defaultExercises)[number] & { muscleGroup?: string; steps?: string[]; tips?: string[]; mistakesList?: string[]; repUnit?: "reps" | "seconds" | "meters"; imageUrl?: string };
+export type BlogItem = (typeof defaultBlogPosts)[number] & { status?: "draft" | "published"; publishedAt?: string | null; coverImage?: string; contentFormat?: "html" | "markdown"; seoTitle?: string; seoDescription?: string };
 export type VideoItem = (typeof defaultVideos)[number];
 
 export type ContactMessage = {
@@ -135,13 +135,13 @@ export async function saveAdminBlogs(items: BlogItem[]) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "same-origin",
-      body: JSON.stringify(items.map((item) => ({ ...item, content: DOMPurify.sanitize(item.content), excerpt: DOMPurify.sanitize(item.excerpt) }))),
+      body: JSON.stringify(items.map((item) => ({ ...item, content: item.contentFormat === "markdown" ? item.content : DOMPurify.sanitize(item.content), excerpt: DOMPurify.sanitize(item.excerpt) }))),
     });
 
     if (response.ok) {
-      const data = (await response.json()) as BlogItem[];
-      writeStorage(STORAGE_KEYS.blogs, data);
-      return data;
+      await response.json();
+      writeStorage(STORAGE_KEYS.blogs, items);
+      return items;
     }
   } catch {
     throw new Error("Unable to save admin blogs.");

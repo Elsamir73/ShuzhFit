@@ -30,8 +30,8 @@ export function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      await authenticateUser({ email, password });
-      navigate(from, { replace: true });
+      const user = await authenticateUser({ email, password });
+      navigate(user.role === "admin" ? "/admin" : from, { replace: true });
     } catch (submitError) {
       setError(
         submitError instanceof Error

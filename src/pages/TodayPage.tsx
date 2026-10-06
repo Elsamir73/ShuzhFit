@@ -6,7 +6,7 @@ import { useAuth } from "../contexts/AuthContext";
 
 type TodayData = {
   date: string;
-  plannedWorkout: null | { id: number; name: string; split: string; shortened: boolean; exercises: Array<{ id: number; name: string; muscles: string | null; equipment: string | null; targetSets: number; repMin: number; repMax: number }> };
+  plannedWorkout: null | { id: number; name: string; split: string; shortened: boolean; exercises: Array<{ id: number; name: string; muscles: string | null; equipment: string | null; repUnit?: string; targetSets: number; repMin: number; repMax: number }> };
   inProgressWorkout: null | { id: number; name: string; startedAt: string | null };
   week: Array<{ date: string; day: string; status: "done" | "planned" | "rest" }>;
   streak: number;
@@ -105,54 +105,39 @@ export function TodayPage() {
           {error ? <div role="alert" className="form-message">{error}</div> : null}
           {loading ? <div className="app-panel" aria-busy="true">Loading your plan…</div> : null}
           {!loading && today ? <>
-            {today.inProgressWorkout ? <article className="app-panel adaptation-panel">
-              <h2>Workout in progress</h2><p>{today.inProgressWorkout.name}</p><Link className="btn btn-primary btn-lg" to="/workout">Resume workout</Link>
-            </article> : null}
-
-            {today.insights.length ? <section className="app-panel adaptation-panel" aria-label="Training insights">
-              <h2>Adaptive coaching</h2>
-              {today.insights.map((insight) => <article className="adaptation-card" key={insight.id}>
-                <strong>{insight.title}</strong><p>{insight.description}</p>
-                <div className="btn-row">
-                  <button type="button" className="btn btn-primary btn-sm" onClick={() => void decideInsight(insight, "accepted")}>{insight.actionLabel}</button>
-                  <button type="button" className="btn btn-sm" onClick={() => void decideInsight(insight, "dismissed")}>{insight.dismissLabel}</button>
-                </div>
-              </article>)}
-            </section> : null}
-
             <article className="app-panel session-panel" style={{ padding: 24 }}>
-              <div className="meal-day-header"><h2>{today.plannedWorkout ? today.plannedWorkout.name : "Recovery day"}</h2><span>{today.plannedWorkout?.split.replaceAll("_", " ") ?? "Rest"}</span></div>
+              <div className="meal-day-header"><div><h2>{today.plannedWorkout ? today.plannedWorkout.name : "Recovery day"}</h2><p>{today.plannedWorkout ? `${today.plannedWorkout.exercises.length} exercises · about ${today.plannedWorkout.exercises.length * 8} min` : "Rest and recharge"}</p></div><span>{today.plannedWorkout?.split.replaceAll("_", " ") ?? "Rest"}</span></div>
               {today.plannedWorkout?.shortened ? <p className="hint-box">Shorter session selected to help you get back into rhythm.</p> : null}
-              {today.plannedWorkout ? <ul className="meal-list">{today.plannedWorkout.exercises.map((exercise) => <li key={exercise.id}>
-                <strong>{exercise.name}</strong><div>{exercise.targetSets} sets × {exercise.repMin}–{exercise.repMax} reps</div><small>{exercise.muscles ?? exercise.equipment ?? "Training"}</small>
-              </li>)}</ul> : <p>Take a rest day or log a walk or mobility session.</p>}
-              {today.plannedWorkout ? <Link className="btn btn-primary btn-lg" to={`/workout?programDayId=${today.plannedWorkout.id}`}>Start workout</Link> : <button type="button" className="btn btn-primary btn-lg" onClick={() => setQuickMode("workout")}>Log a quick workout</button>}
+              {today.plannedWorkout ? <p>{[...new Set(today.plannedWorkout.exercises.map((exercise) => exercise.muscles).filter(Boolean))].slice(0, 3).join(" · ")}</p> : <p>Take a rest day or log a walk or mobility session.</p>}
+              {today.inProgressWorkout ? <Link className="btn btn-primary btn-lg" to="/workout">Resume workout</Link> : today.plannedWorkout ? <Link className="btn btn-primary btn-lg" to={`/workout?programDayId=${today.plannedWorkout.id}`}>Start workout</Link> : <button type="button" className="btn btn-primary btn-lg" onClick={() => setQuickMode("workout")}>Log a quick workout</button>}
               <Link className="btn" style={{ marginLeft: 12 }} to="/plan">View full plan</Link>
             </article>
 
             <section className="app-panel" aria-label="This week">
-              <h2>This week</h2>
+              <h2>This week · {today.streak} day streak</h2>
               <div className="week-strip">{today.week.map((day) => <div className={`week-strip-day is-${day.status}`} key={day.date} aria-label={`${day.day}: ${day.status}`}>
                 <small>{day.day.slice(0, 3)}</small><strong>{Number(day.date.slice(-2))}</strong><span>{day.status === "done" ? "Done" : day.status === "planned" ? "Plan" : "Rest"}</span>
               </div>)}</div>
+            </section>
+
+            <section className="btn-row today-quick-actions" aria-label="Quick logs">
+              <button className="btn" type="button" onClick={() => setQuickMode("weight")}>Log weight</button>
+              <button className="btn" type="button" onClick={() => setQuickMode("water")}>Log water</button>
+              <button className="btn" type="button" onClick={() => setQuickMode("workout")}>Quick workout</button>
             </section>
 
             <section className="workout-layout" aria-label="Progress summary">
               <article className="app-panel session-panel"><h2>Activity</h2><p><strong>{today.workoutsThisWeek}</strong> / {today.weeklyWorkoutTarget} workouts this week</p><p><strong>{today.streak}</strong> day streak</p>
                 <p>Latest weight: <strong>{today.weight.latestKg === null ? "—" : `${today.weight.latestKg} kg`}</strong>{today.weight.changeKg7d === null ? null : ` · ${today.weight.changeKg7d > 0 ? "+" : ""}${today.weight.changeKg7d} kg in 7 days`}</p>
               </article>
-              <article className="app-panel session-panel"><h2>Nutrition today</h2><p>Calories <strong>{today.nutrition.calories}</strong> / {today.nutrition.calorieTarget} kcal</p><p>Protein <strong>{today.nutrition.proteinG}</strong> / {today.nutrition.proteinTargetG} g</p><p>Water <strong>{today.water.glasses}</strong> / {today.water.targetGlasses} glasses · {today.water.targetMl} ml target</p></article>
+              <article className="app-panel session-panel"><h2>Nutrition today</h2><p>Calories <strong>{today.nutrition.calories}</strong> / {today.nutrition.calorieTarget} kcal</p><progress max={today.nutrition.calorieTarget || 1} value={today.nutrition.calories}>{today.nutrition.calories}</progress><p>Protein <strong>{today.nutrition.proteinG}</strong> / {today.nutrition.proteinTargetG} g</p><progress max={today.nutrition.proteinTargetG || 1} value={today.nutrition.proteinG}>{today.nutrition.proteinG}</progress><p>Water <strong>{today.water.glasses}</strong> / {today.water.targetGlasses} glasses · {today.water.targetMl} ml target</p></article>
             </section>
 
             {today.activeGoals.length ? <section className="app-panel"><h2>Active goals</h2>{today.activeGoals.map((goal) => <div key={goal.id} className="goal-progress-row">
               <div className="meal-day-header"><strong>{goal.title}</strong><small>{goal.current} / {goal.target}</small></div><progress max={100} value={goal.progressPercent}>{goal.progressPercent}%</progress>
             </div>)}</section> : null}
 
-            <section className="btn-row" aria-label="Quick logs">
-              <button className="btn" type="button" onClick={() => setQuickMode("weight")}>Log weight</button>
-              <button className="btn" type="button" onClick={() => setQuickMode("water")}>Log water</button>
-              <button className="btn" type="button" onClick={() => setQuickMode("workout")}>Quick workout</button>
-            </section>
+            {today.insights.length ? <section className="app-panel adaptation-panel" aria-label="Training insights"><h2>Adaptive coaching</h2>{today.insights.map((insight) => <article className="adaptation-card" key={insight.id}><strong>{insight.title}</strong><p>{insight.description}</p><div className="btn-row"><button type="button" className="btn btn-primary btn-sm" onClick={() => void decideInsight(insight, "accepted")}>{insight.actionLabel}</button><button type="button" className="btn btn-sm" onClick={() => void decideInsight(insight, "dismissed")}>{insight.dismissLabel}</button></div></article>)}</section> : null}
           </> : null}
         </div>
       </section>

@@ -34,7 +34,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
   try {
     const [{ db }, schema] = await Promise.all([import("../../db/index.js"), import("../../db/schema.js")]);
     const [exerciseRows] = await Promise.all([
-      db.select({ id: schema.exercises.id, name: schema.exercises.name, equipment: schema.exercises.equipment, level: schema.exercises.difficulty, muscles: schema.exercises.muscles })
+      db.select({ id: schema.exercises.id, name: schema.exercises.name, equipment: schema.exercises.equipment, level: schema.exercises.difficulty, muscles: schema.exercises.muscles, muscleGroup: schema.exercises.muscleGroup, category: schema.exercises.category, repUnit: schema.exercises.repUnit })
         .from(schema.exercises).where(eq(schema.exercises.isPublished, true)),
     ]);
     const generated = generateProgramDays(exerciseRows, input);

@@ -10,11 +10,11 @@ const updateSchema = z.discriminatedUnion("type", [
 ]);
 
 export default async function handler(req: ApiRequest, res: ApiResponse): Promise<void> {
-  if (req.method !== "GET" && req.method !== "PATCH") {
+  if (req.method !== "GET" && req.method !== "PATCH" && req.method !== "POST") {
     sendError(res, 405, "METHOD_NOT_ALLOWED", "Method not allowed.");
     return;
   }
-  if (req.method === "PATCH" && (!requireOrigin(req, res) || !requireJson(req, res))) return;
+  if (req.method !== "GET" && (!requireOrigin(req, res) || !requireJson(req, res))) return;
   const user = await requireAuth(req, res);
   if (!user) return;
   try {
@@ -25,7 +25,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
       sendError(res, 404, "PROGRAM_NOT_FOUND", "Complete onboarding to create your weekly plan.");
       return;
     }
-    if (req.method === "PATCH") {
+    if (req.method === "POST") req.body = { type: "regenerate" };
+    if (req.method !== "GET") {
       const input = parseBody(updateSchema, req.body);
       if (!input) {
         sendError(res, 400, "INVALID_INPUT", "The plan change is invalid.");
@@ -34,7 +35,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
       if (input.type === "regenerate") {
         const [profile] = await db.select({ daysPerWeek: schema.users.daysPerWeek, equipment: schema.users.equipment, experience: schema.users.experience }).from(schema.users).where(eq(schema.users.id, userId)).limit(1);
         if (!profile) { sendError(res, 404, "PROFILE_NOT_FOUND", "Profile not found."); return; }
-        const candidates = await db.select({ id: schema.exercises.id, name: schema.exercises.name, equipment: schema.exercises.equipment, level: schema.exercises.difficulty, muscles: schema.exercises.muscles }).from(schema.exercises).where(eq(schema.exercises.isPublished, true));
+        const candidates = await db.select({ id: schema.exercises.id, name: schema.exercises.name, equipment: schema.exercises.equipment, level: schema.exercises.difficulty, muscles: schema.exercises.muscles, muscleGroup: schema.exercises.muscleGroup, category: schema.exercises.category, repUnit: schema.exercises.repUnit }).from(schema.exercises).where(eq(schema.exercises.isPublished, true));
         let generated;
         try { generated = generateProgramDays(candidates, { daysPerWeek: profile.daysPerWeek ?? 3, equipment: profile.equipment ?? "gym", experience: profile.experience ?? "beginner" }); }
         catch { sendError(res, 422, "PLAN_UNAVAILABLE", "There are not enough exercises for these preferences."); return; }
@@ -54,20 +55,30 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
         return;
       }
       if (input.type === "reschedule") {
+        if (input.weekday !== null) {
+          const [collision] = await db.select({ id: schema.programDays.id }).from(schema.programDays)
+            .where(and(eq(schema.programDays.programId, program.id), eq(schema.programDays.weekday, input.weekday))).limit(1);
+          if (collision && collision.id !== input.dayId) { sendError(res, 409, "WEEKDAY_TAKEN", "Another training day is already scheduled for that weekday."); return; }
+        }
         await db.update(schema.programDays).set({ weekday: input.weekday }).where(eq(schema.programDays.id, input.dayId));
       } else {
         const [profile] = await db.select({ equipment: schema.users.equipment, experience: schema.users.experience })
           .from(schema.users).where(eq(schema.users.id, userId)).limit(1);
-        const [exercise] = await db.select({ id: schema.exercises.id, name: schema.exercises.name, equipment: schema.exercises.equipment, level: schema.exercises.difficulty, muscles: schema.exercises.muscles })
+        const [exercise] = await db.select({ id: schema.exercises.id, name: schema.exercises.name, equipment: schema.exercises.equipment, level: schema.exercises.difficulty, muscles: schema.exercises.muscles, muscleGroup: schema.exercises.muscleGroup })
           .from(schema.exercises).where(and(eq(schema.exercises.id, input.exerciseId), eq(schema.exercises.isPublished, true))).limit(1);
         if (!profile || !exercise || !filterPlanExercises([exercise], profile.equipment ?? "gym", profile.experience ?? "beginner").length) {
           sendError(res, 400, "EXERCISE_UNAVAILABLE", "Choose an exercise that matches your equipment and experience level.");
           return;
         }
-        const [existing] = await db.select({ id: schema.programDayExercises.id }).from(schema.programDayExercises)
+        const [existing] = await db.select({ id: schema.programDayExercises.id, exerciseId: schema.programDayExercises.exerciseId }).from(schema.programDayExercises)
           .where(and(eq(schema.programDayExercises.programDayId, input.dayId), eq(schema.programDayExercises.position, input.position))).limit(1);
         if (!existing) {
           sendError(res, 404, "EXERCISE_SLOT_NOT_FOUND", "That exercise slot no longer exists.");
+          return;
+        }
+        const [currentExercise] = await db.select({ muscleGroup: schema.exercises.muscleGroup, equipment: schema.exercises.equipment }).from(schema.exercises).where(eq(schema.exercises.id, existing.exerciseId)).limit(1);
+        if (!currentExercise || currentExercise.muscleGroup !== exercise.muscleGroup || currentExercise.equipment !== exercise.equipment) {
+          sendError(res, 400, "EXERCISE_MISMATCH", "Choose an alternative with the same target muscles and equipment.");
           return;
         }
         await db.update(schema.programDayExercises).set({ exerciseId: exercise.id }).where(eq(schema.programDayExercises.id, existing.id));
@@ -78,14 +89,14 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
 
     const days = await db.select().from(schema.programDays).where(eq(schema.programDays.programId, program.id)).orderBy(asc(schema.programDays.dayIndex));
     const planDays = await Promise.all(days.map(async (day) => {
-      const exercises = await db.select({ id: schema.exercises.id, name: schema.exercises.name, muscles: schema.exercises.muscles, equipment: schema.exercises.equipment, position: schema.programDayExercises.position, targetSets: schema.programDayExercises.targetSets, repMin: schema.programDayExercises.repMin, repMax: schema.programDayExercises.repMax })
+      const exercises = await db.select({ id: schema.exercises.id, name: schema.exercises.name, muscles: schema.exercises.muscles, equipment: schema.exercises.equipment, repUnit: schema.exercises.repUnit, position: schema.programDayExercises.position, targetSets: schema.programDayExercises.targetSets, repMin: schema.programDayExercises.repMin, repMax: schema.programDayExercises.repMax })
         .from(schema.programDayExercises).innerJoin(schema.exercises, eq(schema.programDayExercises.exerciseId, schema.exercises.id))
         .where(eq(schema.programDayExercises.programDayId, day.id)).orderBy(asc(schema.programDayExercises.position));
       return { ...day, exercises };
     }));
     const [profile] = await db.select({ equipment: schema.users.equipment, experience: schema.users.experience })
       .from(schema.users).where(eq(schema.users.id, userId)).limit(1);
-    const allExercises = await db.select({ id: schema.exercises.id, name: schema.exercises.name, equipment: schema.exercises.equipment, level: schema.exercises.difficulty, muscles: schema.exercises.muscles }).from(schema.exercises)
+    const allExercises = await db.select({ id: schema.exercises.id, name: schema.exercises.name, equipment: schema.exercises.equipment, level: schema.exercises.difficulty, muscles: schema.exercises.muscles, muscleGroup: schema.exercises.muscleGroup }).from(schema.exercises)
       .where(eq(schema.exercises.isPublished, true));
     const swapOptions = profile ? filterPlanExercises(allExercises, profile.equipment ?? "gym", profile.experience ?? "beginner") : [];
     res.status(200).json({ program: { id: program.id, name: program.name, split: program.split }, days: planDays, swapOptions });

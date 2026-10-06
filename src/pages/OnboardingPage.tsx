@@ -127,6 +127,7 @@ export function OnboardingPage() {
               <div className="hint-box"><strong>Daily starting targets</strong><span>{estimates.calorieTarget} kcal · {estimates.proteinTargetG} g protein · {estimates.waterTargetMl} ml water</span></div>
             </div> : null}
             {error ? <div role="alert" className="form-message">{error}</div> : null}
+            <p className="health-disclaimer">Fitness and nutrition information is educational and is not medical advice. Talk to a health professional before making major changes.</p>
             <div className="btn-row" style={{ marginTop: 20 }}>
               {step > 0 ? <button type="button" className="btn btn-lg" onClick={() => setStep((current) => current - 1)}>Back</button> : null}
               <button type="submit" className="btn btn-primary btn-lg" disabled={saving}>{step < 2 ? "Continue" : saving ? "Building your plan…" : "Create my plan"}</button>

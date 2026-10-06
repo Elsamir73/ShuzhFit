@@ -6,6 +6,7 @@ import {
   saveAdminExercises,
   type ExerciseItem,
 } from "../lib/adminData";
+import { MediaPicker } from "./AdminMediaPage";
 
 const emptyForm = {
   slug: "",
@@ -19,6 +20,12 @@ const emptyForm = {
   formGuide: "",
   mistakes: "",
   youtubeUrl: "",
+  muscleGroup: "full_body",
+  stepsText: "",
+  tipsText: "",
+  mistakesListText: "",
+  repUnit: "reps" as "reps" | "seconds" | "meters",
+  imageUrl: "",
 };
 
 function makeSlug(value: string) {
@@ -35,6 +42,7 @@ export function AdminExercisesPage() {
   const [items, setItems] = useState<ExerciseItem[]>([]);
   const [form, setForm] = useState(emptyForm);
   const [editingSlug, setEditingSlug] = useState<string | null>(null);
+  const [mediaOpen, setMediaOpen] = useState(false);
 
   useEffect(() => {
     void getAdminExercises().then((next) => setItems(next));
@@ -52,6 +60,8 @@ export function AdminExercisesPage() {
     if (!trimmedName) {
       return;
     }
+    const steps = form.stepsText.split("\n").map((step) => step.trim()).filter(Boolean);
+    if (steps.length < 3) { window.alert("Published exercises need at least three steps."); return; }
 
     const payload: ExerciseItem = {
       slug: form.slug.trim() || makeSlug(trimmedName),
@@ -65,6 +75,12 @@ export function AdminExercisesPage() {
       formGuide: form.formGuide,
       mistakes: form.mistakes,
       youtubeUrl: form.youtubeUrl,
+      muscleGroup: form.muscleGroup,
+      steps,
+      tips: form.tipsText.split("\n").map((tip) => tip.trim()).filter(Boolean).slice(0, 3),
+      mistakesList: form.mistakesListText.split("\n").map((mistake) => mistake.trim()).filter(Boolean).slice(0, 4),
+      repUnit: form.repUnit,
+      imageUrl: form.imageUrl,
     };
 
     const next = editingSlug
@@ -78,10 +94,7 @@ export function AdminExercisesPage() {
 
   function handleEdit(item: ExerciseItem) {
     setEditingSlug(item.slug);
-    setForm({
-      ...item,
-      youtubeUrl: item.youtubeUrl ?? "",
-    });
+    setForm({ ...emptyForm, ...item, youtubeUrl: item.youtubeUrl ?? "", muscleGroup: item.muscleGroup ?? "full_body", stepsText: item.steps?.join("\n") ?? "", tipsText: item.tips?.join("\n") ?? "", mistakesListText: item.mistakesList?.join("\n") ?? "", repUnit: item.repUnit ?? "reps", imageUrl: item.imageUrl ?? "" });
   }
 
   async function handleDelete(slug: string) {
@@ -179,6 +192,10 @@ export function AdminExercisesPage() {
                   }
                 />
               </label>
+              <div className="field-grid is-two-col"><label className="field"><span>Muscle group</span><select value={form.muscleGroup} onChange={(event) => setForm({ ...form, muscleGroup: event.target.value })}>{["chest", "back", "legs", "shoulders", "arms", "core", "full_body"].map((group) => <option key={group} value={group}>{group.replace("_", " ")}</option>)}</select></label><label className="field"><span>Rep unit</span><select value={form.repUnit} onChange={(event) => setForm({ ...form, repUnit: event.target.value as typeof form.repUnit })}><option value="reps">Reps</option><option value="seconds">Seconds</option><option value="meters">Meters</option></select></label></div>
+              <label className="field"><span>Steps (one per line, 3–7)</span><textarea required value={form.stepsText} onChange={(event) => setForm({ ...form, stepsText: event.target.value })} rows={6} /></label>
+              <label className="field"><span>Coach tips (one per line)</span><textarea value={form.tipsText} onChange={(event) => setForm({ ...form, tipsText: event.target.value })} rows={3} /></label>
+              <label className="field"><span>Common mistakes (one per line)</span><textarea value={form.mistakesListText} onChange={(event) => setForm({ ...form, mistakesListText: event.target.value })} rows={3} /></label>
 
               <label className="field">
                 <span>Description</span>
@@ -233,6 +250,7 @@ export function AdminExercisesPage() {
                   }
                 />
               </label>
+              <label className="field"><span>Image URL</span><input type="url" value={form.imageUrl} onChange={(event) => setForm({ ...form, imageUrl: event.target.value })} /></label><button type="button" className="btn" onClick={() => setMediaOpen(true)}>Choose from Media</button>
 
               <div className="admin-actions">
                 <button type="submit" className="btn btn-primary">
@@ -277,6 +295,7 @@ export function AdminExercisesPage() {
           </div>
         </div>
       </section>
+      {mediaOpen ? <MediaPicker onClose={() => setMediaOpen(false)} onSelect={(item) => { setForm((current) => ({ ...current, imageUrl: item.url })); setMediaOpen(false); }} /> : null}
     </>
   );
 }

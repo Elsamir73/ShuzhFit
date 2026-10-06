@@ -121,6 +121,7 @@ export function RegisterPage() {
                   {error}
                 </div>
               ) : null}
+            <p className="legal-note">By creating an account you agree to our <Link to="/terms">Terms</Link> and acknowledge our <Link to="/privacy">Privacy Policy</Link>.</p>
 
               <button
                 type="submit"

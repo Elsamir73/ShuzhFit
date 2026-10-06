@@ -1,51 +1,56 @@
+import { Suspense, lazy } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AdminRoute } from "./components/AdminRoute";
-import { HomePage } from "./pages/HomePage";
-import { NotFoundPage } from "./pages/NotFoundPage";
-import { ExercisesPage } from "./pages/ExercisesPage";
-import { ExerciseDetailPage } from "./pages/ExerciseDetailPage";
-import { BlogPage } from "./pages/BlogPage";
-import { BlogDetailPage } from "./pages/BlogDetailPage";
-import { VideosPage } from "./pages/VideosPage";
-import { SearchPage } from "./pages/SearchPage";
-import { ContactPage } from "./pages/ContactPage";
-import { BmiPage } from "./pages/BmiPage";
-import { StaticPage } from "./pages/StaticPage";
-import { LoginPage } from "./pages/LoginPage";
-import { RegisterPage } from "./pages/RegisterPage";
-import { DashboardPage } from "./pages/DashboardPage";
-import { DevStyleGuidePage } from "./pages/DevStyleGuidePage";
-import { OnboardingPage } from "./pages/OnboardingPage";
-import { PlanPage } from "./pages/PlanPage";
-import { TodayPage } from "./pages/TodayPage";
-import { WorkoutPage } from "./pages/WorkoutPage";
-import { WorkoutHistoryPage } from "./pages/WorkoutHistoryPage";
-import { WorkoutDetailPage } from "./pages/WorkoutDetailPage";
-import { ProgressPage } from "./pages/ProgressPage";
-import { JourneyPage } from "./pages/JourneyPage";
-import { NutritionLogPage } from "./pages/NutritionLogPage";
-import { ProfilePage } from "./pages/ProfilePage";
-import { MealPlannerPage } from "./pages/MealPlannerPage";
-import { LogoutPage } from "./pages/LogoutPage";
-import { AdminPage } from "./pages/AdminPage";
-import { AdminExercisesPage } from "./pages/AdminExercisesPage";
-import { AdminBlogsPage } from "./pages/AdminBlogsPage";
-import { AdminVideosPage } from "./pages/AdminVideosPage";
-import { AdminMessagesPage } from "./pages/AdminMessagesPage";
-import { AdminCommentsPage } from "./pages/AdminCommentsPage";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+const HomePage = lazy(() => import("./pages/HomePage").then((module) => ({ default: module.HomePage })));
+const NotFoundPage = lazy(() => import("./pages/NotFoundPage").then((module) => ({ default: module.NotFoundPage })));
+const ExercisesPage = lazy(() => import("./pages/ExercisesPage").then((module) => ({ default: module.ExercisesPage })));
+const ExerciseDetailPage = lazy(() => import("./pages/ExerciseDetailPage").then((module) => ({ default: module.ExerciseDetailPage })));
+const BlogPage = lazy(() => import("./pages/BlogPage").then((module) => ({ default: module.BlogPage })));
+const BlogDetailPage = lazy(() => import("./pages/BlogDetailPage").then((module) => ({ default: module.BlogDetailPage })));
+const VideosPage = lazy(() => import("./pages/VideosPage").then((module) => ({ default: module.VideosPage })));
+const SearchPage = lazy(() => import("./pages/SearchPage").then((module) => ({ default: module.SearchPage })));
+const ContactPage = lazy(() => import("./pages/ContactPage").then((module) => ({ default: module.ContactPage })));
+const BmiPage = lazy(() => import("./pages/BmiPage").then((module) => ({ default: module.BmiPage })));
+const StaticPage = lazy(() => import("./pages/StaticPage").then((module) => ({ default: module.StaticPage })));
+const AboutPage = lazy(() => import("./pages/AboutPage").then((module) => ({ default: module.AboutPage })));
+const LoginPage = lazy(() => import("./pages/LoginPage").then((module) => ({ default: module.LoginPage })));
+const RegisterPage = lazy(() => import("./pages/RegisterPage").then((module) => ({ default: module.RegisterPage })));
+const DashboardPage = lazy(() => import("./pages/DashboardPage").then((module) => ({ default: module.DashboardPage })));
+const DevStyleGuidePage = lazy(() => import("./pages/DevStyleGuidePage").then((module) => ({ default: module.DevStyleGuidePage })));
+const OnboardingPage = lazy(() => import("./pages/OnboardingPage").then((module) => ({ default: module.OnboardingPage })));
+const PlanPage = lazy(() => import("./pages/PlanPage").then((module) => ({ default: module.PlanPage })));
+const TodayPage = lazy(() => import("./pages/TodayPage").then((module) => ({ default: module.TodayPage })));
+const WorkoutPage = lazy(() => import("./pages/WorkoutPage").then((module) => ({ default: module.WorkoutPage })));
+const WorkoutHistoryPage = lazy(() => import("./pages/WorkoutHistoryPage").then((module) => ({ default: module.WorkoutHistoryPage })));
+const WorkoutDetailPage = lazy(() => import("./pages/WorkoutDetailPage").then((module) => ({ default: module.WorkoutDetailPage })));
+const ProgressPage = lazy(() => import("./pages/ProgressPage").then((module) => ({ default: module.ProgressPage })));
+const NutritionLogPage = lazy(() => import("./pages/NutritionLogPage").then((module) => ({ default: module.NutritionLogPage })));
+const ProfilePage = lazy(() => import("./pages/ProfilePage").then((module) => ({ default: module.ProfilePage })));
+const MealPlannerPage = lazy(() => import("./pages/MealPlannerPage").then((module) => ({ default: module.MealPlannerPage })));
+const LogoutPage = lazy(() => import("./pages/LogoutPage").then((module) => ({ default: module.LogoutPage })));
+const AdminPage = lazy(() => import("./pages/AdminPage").then((module) => ({ default: module.AdminPage })));
+const AdminMembersPage = lazy(() => import("./pages/AdminMembersPage").then((module) => ({ default: module.AdminMembersPage })));
+const AdminMediaPage = lazy(() => import("./pages/AdminMediaPage").then((module) => ({ default: module.AdminMediaPage })));
+const AdminExercisesPage = lazy(() => import("./pages/AdminExercisesPage").then((module) => ({ default: module.AdminExercisesPage })));
+const AdminBlogsPage = lazy(() => import("./pages/AdminBlogsPage").then((module) => ({ default: module.AdminBlogsPage })));
+const AdminVideosPage = lazy(() => import("./pages/AdminVideosPage").then((module) => ({ default: module.AdminVideosPage })));
+const AdminMessagesPage = lazy(() => import("./pages/AdminMessagesPage").then((module) => ({ default: module.AdminMessagesPage })));
+const AdminCommentsPage = lazy(() => import("./pages/AdminCommentsPage").then((module) => ({ default: module.AdminCommentsPage })));
 import "./styles/tokens.css";
 import "./styles/style.css";
 import "./styles/home.css";
 
 function App() {
   return (
-    <Routes>
+    <ErrorBoundary><Suspense fallback={<main className="page container" aria-busy="true">Loading page…</main>}>
+      <Routes>
       <Route
         path="/"
         element={
-          <Layout variant="home">
+          <Layout>
             <HomePage />
           </Layout>
         }
@@ -150,13 +155,14 @@ function App() {
       />
       <Route path="/motivation" element={<Navigate to="/" replace />} />
       <Route
-        path="/journey"
+        path="/about"
         element={
           <Layout>
-            <JourneyPage />
+            <AboutPage />
           </Layout>
         }
       />
+      <Route path="/journey" element={<Navigate to="/about" replace />} />
       <Route
         path="/bmi"
         element={
@@ -173,6 +179,8 @@ function App() {
           </Layout>
         }
       />
+      <Route path="/privacy" element={<Layout><StaticPage title="Privacy Policy" description="We store your account email and password securely, plus the workout, food, water and progress logs you choose to add. YouTube videos may load from YouTube when you play them. Contact ShuzhFit to request account and data deletion." items={[]} /></Layout>} />
+      <Route path="/terms" element={<Layout><StaticPage title="Terms of Use" description="ShuzhFit provides fitness tracking and general educational content. Use the service responsibly and contact us if you need help with your account or data." items={[]} /></Layout>} />
       <Route
         path="/search"
         element={
@@ -318,6 +326,8 @@ function App() {
           </AdminRoute>
         }
       />
+      <Route path="/admin/members" element={<AdminRoute><Layout><AdminMembersPage /></Layout></AdminRoute>} />
+      <Route path="/admin/media" element={<AdminRoute><Layout><AdminMediaPage /></Layout></AdminRoute>} />
       <Route
         path="/admin/exercises"
         element={
@@ -383,7 +393,8 @@ function App() {
         }
       />
       <Route path="*" element={<Navigate to="/not-found" replace />} />
-    </Routes>
+      </Routes>
+    </Suspense></ErrorBoundary>
   );
 }
 

@@ -74,7 +74,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
     const todayWeekday = (today.getUTCDay() + 6) % 7;
     const todayProgramDay = plannedDays.find((day) => day.weekday === todayWeekday);
     const plannedExercises = todayProgramDay
-      ? await db.select({ id: schema.exercises.id, name: schema.exercises.name, muscles: schema.exercises.muscles, equipment: schema.exercises.equipment, targetSets: schema.programDayExercises.targetSets, repMin: schema.programDayExercises.repMin, repMax: schema.programDayExercises.repMax })
+      ? await db.select({ id: schema.exercises.id, name: schema.exercises.name, muscles: schema.exercises.muscles, equipment: schema.exercises.equipment, repUnit: schema.exercises.repUnit, targetSets: schema.programDayExercises.targetSets, repMin: schema.programDayExercises.repMin, repMax: schema.programDayExercises.repMax })
         .from(schema.programDayExercises).innerJoin(schema.exercises, eq(schema.programDayExercises.exerciseId, schema.exercises.id))
         .where(eq(schema.programDayExercises.programDayId, todayProgramDay.id)).orderBy(asc(schema.programDayExercises.position))
       : [];

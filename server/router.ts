@@ -5,6 +5,9 @@ import adminComments from "./routes/admin/comments.js";
 import adminExercises from "./routes/admin/exercises.js";
 import adminMessages from "./routes/admin/messages.js";
 import adminVideos from "./routes/admin/videos.js";
+import adminOverview from "./routes/admin/overview.js";
+import adminMembers from "./routes/admin/members.js";
+import adminMedia from "./routes/admin/media.js";
 import authLogin from "./routes/auth/login.js";
 import authLogout from "./routes/auth/logout.js";
 import authMe from "./routes/auth/me.js";
@@ -39,12 +42,21 @@ export const routeTable = new Map<string, ApiHandler>([
   ["POST /auth/logout", authLogout],
   ["POST /auth/register", authRegister],
   ["GET /admin/blogs", adminBlogs],
+  ["GET /admin/overview", adminOverview],
+  ["GET /admin/members", adminMembers],
+  ["PATCH /admin/members", adminMembers],
+  ["DELETE /admin/members", adminMembers],
+  ["GET /admin/media", adminMedia],
+  ["POST /admin/media", adminMedia],
+  ["PATCH /admin/media", adminMedia],
+  ["DELETE /admin/media", adminMedia],
   ["POST /admin/blogs", adminBlogs],
   ["GET /admin/comments", adminComments],
   ["DELETE /admin/comments", adminComments],
   ["GET /admin/exercises", adminExercises],
   ["POST /admin/exercises", adminExercises],
   ["GET /admin/messages", adminMessages],
+  ["PATCH /admin/messages", adminMessages],
   ["DELETE /admin/messages", adminMessages],
   ["GET /admin/videos", adminVideos],
   ["POST /admin/videos", adminVideos],
@@ -74,6 +86,7 @@ export const routeTable = new Map<string, ApiHandler>([
   ["DELETE /profile", profile],
   ["GET /program", program],
   ["PATCH /program", program],
+  ["POST /program/regenerate", program],
   ["GET /progress", progress],
   ["POST /progress", progress],
   ["PATCH /progress", progress],

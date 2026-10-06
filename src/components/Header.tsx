@@ -1,157 +1,84 @@
-import { Link, NavLink } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
+import { useEffect, useState } from "react";
+import { Link, NavLink, useLocation } from "react-router-dom";
 
 const navItems = [
-  { to: "/", label: "Home" },
+  { to: "/", label: "Home", end: true },
   { to: "/exercises", label: "Workouts" },
   { to: "/videos", label: "Videos" },
-  { to: "/journey", label: "My Journey" },
   { to: "/blog", label: "Blog" },
+  { to: "/about", label: "About" },
+  { to: "/nutrition", label: "Nutrition" },
 ];
 
 export function Header() {
-  const { user } = useAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => setMenuOpen(false), [location.pathname]);
 
   return (
-    <>
-      <div className="bg-glow" aria-hidden="true" />
-      <header className="site-header">
-        <div className="container nav-wrap">
-          <Link className="brand" to="/" aria-label="ShuzhFit Home">
-            <span className="brand-dot" aria-hidden="true" />
-            ShuzhFit
-          </Link>
+    <header className="site-header">
+      <div className="container nav-wrap">
+        <Link className="brand" to="/" aria-label="ShuzhFit home">
+          <span className="brand-dot" aria-hidden="true" />
+          ShuzhFit
+        </Link>
 
-          <nav className="nav" aria-label="Primary">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  `nav-link${isActive ? " active" : ""}`
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
-
-            <Link
-              className="nav-icon"
-              to="/search"
-              aria-label="Search ShuzhFit"
-              title="Search"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                width="17"
-                height="17"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                aria-hidden="true"
-              >
-                <circle cx="11" cy="11" r="7" />
-                <path d="M20 20l-3.6-3.6" />
-              </svg>
-            </Link>
-
-            {user ? (
-              <details className="nav-drop nav-user">
-                <summary className="nav-link nav-cta">
-                  {user.name.split(" ")[0]} ▾
-                </summary>
-                <div className="drop-panel drop-right">
-                  <Link to="/dashboard">Dashboard</Link>
-                  <Link to="/workout">Start Workout</Link>
-                  <Link to="/workout-history">Workout History</Link>
-                  <Link to="/nutrition-log">Food Log</Link>
-                  <Link to="/meal-planner">Meal Planner</Link>
-                  <Link to="/progress">Progress</Link>
-                  <Link to="/profile">My Profile &amp; Goals</Link>
-                  <Link to="/bmi">BMI &amp; Calories</Link>
-                  {user.role === "admin" ? (
-                    <Link to="/admin">Admin</Link>
-                  ) : null}
-                  <Link to="/logout">Log Out</Link>
-                </div>
-              </details>
-            ) : (
-              <>
-                <Link className="nav-link" to="/login">
-                  Log In
-                </Link>
-                <Link className="nav-link nav-cta" to="/register">
-                  Get Started
-                </Link>
-              </>
-            )}
-          </nav>
-
-          <button
-            className="nav-toggle"
-            type="button"
-            aria-label="Open menu"
-            aria-expanded="false"
-            data-nav-toggle
-          >
-            <span className="hamburger" aria-hidden="true" />
-          </button>
-        </div>
-      </header>
-
-      <div className="mobile-panel" data-mobile-panel>
-        <div className="container mobile-panel-inner">
+        <nav className="nav" aria-label="Primary navigation">
           {navItems.map((item) => (
-            <NavLink key={item.to} to={item.to} className="nav-link">
+            <NavLink
+              key={item.to}
+              end={item.end}
+              to={item.to}
+              className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
+            >
               {item.label}
             </NavLink>
           ))}
-          <Link className="nav-link" to="/bmi">
-            BMI &amp; Calories
+          <Link className="nav-icon" to="/search" aria-label="Search ShuzhFit" title="Search">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-4-4" />
+            </svg>
           </Link>
-          <Link className="nav-link" to="/search">
-            Search
-          </Link>
-          {user ? (
-            <>
-              <Link className="nav-link" to="/dashboard">
-                Dashboard
-              </Link>
-              <Link className="nav-link" to="/workout">
-                Start Workout
-              </Link>
-              <Link className="nav-link" to="/workout-history">
-                Workout History
-              </Link>
-              <Link className="nav-link" to="/nutrition-log">
-                Food Log
-              </Link>
-              <Link className="nav-link" to="/meal-planner">
-                Meal Planner
-              </Link>
-              <Link className="nav-link" to="/progress">
-                Progress
-              </Link>
-              <Link className="nav-link" to="/profile">
-                My Profile &amp; Goals
-              </Link>
-              <Link className="nav-link" to="/logout">
-                Log Out
-              </Link>
-            </>
-          ) : (
-            <>
-              <Link className="nav-link" to="/login">
-                Log In
-              </Link>
-              <Link className="nav-link nav-cta" to="/register">
-                Get Started
-              </Link>
-            </>
-          )}
-        </div>
+          <Link className="nav-link nav-login" to="/login">Log in</Link>
+          <Link className="nav-link nav-cta" to="/register">Get started</Link>
+        </nav>
+
+        <button
+          className="nav-toggle"
+          type="button"
+          aria-label={menuOpen ? "Close menu" : "Open menu"}
+          aria-expanded={menuOpen}
+          aria-controls="public-mobile-menu"
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          <span className={`hamburger${menuOpen ? " is-open" : ""}`} aria-hidden="true" />
+        </button>
       </div>
-    </>
+
+      <nav
+        id="public-mobile-menu"
+        className={`mobile-panel${menuOpen ? " is-open" : ""}`}
+        aria-label="Mobile navigation"
+        hidden={!menuOpen}
+      >
+        <div className="container mobile-panel-inner">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              end={item.end}
+              to={item.to}
+              className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
+            >
+              {item.label}
+            </NavLink>
+          ))}
+          <Link className="nav-link" to="/search">Search</Link>
+          <Link className="nav-link" to="/login">Log in</Link>
+          <Link className="nav-link nav-cta" to="/register">Get started</Link>
+        </div>
+      </nav>
+    </header>
   );
 }

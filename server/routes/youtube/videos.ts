@@ -15,7 +15,7 @@ function decodeXml(value: string): string {
     .replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
 }
 
-async function loadFromApi(apiKey: string, channelId: string): Promise<Video[]> {
+export async function loadFromApi(apiKey: string, channelId: string): Promise<Video[]> {
   const channelResponse = await fetch(
     `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${encodeURIComponent(channelId)}&key=${encodeURIComponent(apiKey)}`,
     { signal: AbortSignal.timeout(6000) },
@@ -68,7 +68,7 @@ async function loadFromApi(apiKey: string, channelId: string): Promise<Video[]> 
   });
 }
 
-async function loadFromRss(channelId: string): Promise<Video[]> {
+export async function loadFromRss(channelId: string): Promise<Video[]> {
   const response = await fetch(
     `https://www.youtube.com/feeds/videos.xml?channel_id=${encodeURIComponent(channelId)}`,
     { headers: { accept: "application/atom+xml" }, signal: AbortSignal.timeout(5000) },

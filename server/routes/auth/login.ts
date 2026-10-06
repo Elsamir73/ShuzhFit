@@ -56,6 +56,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
     await db.delete(schema.loginAttempts).where(and(
       eq(schema.loginAttempts.email, email), eq(schema.loginAttempts.ipAddress, ipAddress),
     ));
+    await db.update(schema.users).set({ lastLoginAt: new Date() }).where(eq(schema.users.id, userRow.id));
     const user = { id: String(userRow.id), name: userRow.name, email: userRow.email, role: userRow.role === "admin" ? "admin" as const : "user" as const, onboarded: Boolean(userRow.onboardedAt) };
     setSessionCookie(res, await createAuthToken(user));
     res.status(200).json({ user });

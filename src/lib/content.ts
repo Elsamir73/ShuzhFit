@@ -10,6 +10,12 @@ export type Exercise = {
   formGuide: string;
   mistakes: string;
   youtubeUrl?: string;
+  muscleGroup?: string;
+  steps?: string[];
+  tips?: string[];
+  mistakesList?: string[];
+  repUnit?: "reps" | "seconds" | "meters";
+  video?: { title: string; url: string; thumbnail: string; isShort?: boolean } | null;
 };
 
 export type BlogPost = {
@@ -19,6 +25,10 @@ export type BlogPost = {
   content: string;
   category: string;
   author: string;
+  contentFormat?: "html" | "markdown";
+  coverImage?: string;
+  seoTitle?: string;
+  seoDescription?: string;
 };
 
 export type Video = {
@@ -30,6 +40,7 @@ export type Video = {
   thumbnail?: string;
   durationSeconds?: number;
   publishedAt?: string;
+  isShort?: boolean;
 };
 
 export const exercises: Exercise[] = [

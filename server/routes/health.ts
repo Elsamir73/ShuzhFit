@@ -1,8 +1,13 @@
 import { count, sql } from "drizzle-orm";
 import { isEnvSet, requireServerEnv } from "../lib/env.js";
 import type { ApiRequest, ApiResponse } from "../lib/http.js";
+import { header } from "../lib/http.js";
+import { verifyAuthToken } from "../routes/auth/_helpers.js";
 
-export default async function handler(_req: ApiRequest, res: ApiResponse): Promise<void> {
+export default async function handler(req: ApiRequest, res: ApiResponse): Promise<void> {
+  const token = header(req, "cookie")?.split(";").map((part) => part.trim()).find((part) => part.startsWith("shuzhfit_session="))?.slice("shuzhfit_session=".length);
+  let isAdmin = false;
+  if (token) { try { isAdmin = (await verifyAuthToken(token)).role === "admin"; } catch { isAdmin = false; } }
   let dbReady = false;
   let usersTable = false;
   let exercisesCount = 0;
@@ -28,7 +33,9 @@ export default async function handler(_req: ApiRequest, res: ApiResponse): Promi
     dbReady = false;
   }
 
-  res.status(200).json({
+  if (!isAdmin) { res.status(200).json({ ok: dbReady }); return; }
+
+  res.status(200).json({ ok: dbReady,
     db: dbReady,
     usersTable,
     exercisesCount,

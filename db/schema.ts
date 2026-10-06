@@ -4,6 +4,7 @@ import {
   decimal,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
@@ -38,6 +39,7 @@ export const users = pgTable(
     weeklyWorkoutTarget: integer("weekly_workout_target").notNull().default(3),
     targetWeightKg: decimal("target_weight_kg", { precision: 6, scale: 2 }),
     onboardedAt: timestamp("onboarded_at", { withTimezone: true }),
+    lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -71,6 +73,12 @@ export const blogs = pgTable(
     category: varchar("category", { length: 80 }),
     imageUrl: varchar("image_url", { length: 255 }),
     isPublished: boolean("is_published").notNull().default(true),
+    status: varchar("status", { length: 20 }).notNull().default("published"),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    coverImage: varchar("cover_image", { length: 500 }),
+    contentFormat: varchar("content_format", { length: 12 }).notNull().default("html"),
+    seoTitle: varchar("seo_title", { length: 200 }),
+    seoDescription: text("seo_description"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -93,11 +101,18 @@ export const exercises = pgTable(
     muscles: text("muscles"),
     equipment: varchar("equipment", { length: 120 }),
     difficulty: varchar("difficulty", { length: 60 }),
+    muscleGroup: varchar("muscle_group", { length: 20 }),
+    steps: jsonb("steps").$type<string[]>(),
+    tips: jsonb("tips").$type<string[]>(),
+    mistakesList: jsonb("mistakes_list").$type<string[]>(),
+    repUnit: varchar("rep_unit", { length: 12 }).notNull().default("reps"),
     description: text("description"),
     benefits: text("benefits"),
     formGuide: text("form_guide"),
     mistakes: text("mistakes"),
     youtubeUrl: varchar("youtube_url", { length: 255 }),
+    youtubeVideoId: varchar("youtube_video_id", { length: 32 }),
+    imageUrl: varchar("image_url", { length: 2048 }),
     isPublished: boolean("is_published").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -158,10 +173,25 @@ export const contacts = pgTable("contacts", {
   name: varchar("name", { length: 120 }).notNull(),
   email: varchar("email", { length: 255 }).notNull(),
   message: text("message").notNull(),
+  isRead: boolean("is_read").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
 });
+
+export const media = pgTable("media", {
+  id: serial("id").primaryKey(),
+  url: varchar("url", { length: 2048 }).notNull(),
+  pathname: varchar("pathname", { length: 1024 }).notNull(),
+  filename: varchar("filename", { length: 255 }).notNull(),
+  contentType: varchar("content_type", { length: 80 }).notNull(),
+  size: integer("size").notNull(),
+  width: integer("width"),
+  height: integer("height"),
+  altText: text("alt_text").notNull().default(""),
+  uploadedBy: integer("uploaded_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({ pathnameUnique: uniqueIndex("media_pathname_unique").on(table.pathname), createdIdx: index("media_created_idx").on(table.createdAt) }));
 
 export const userFavorites = pgTable(
   "user_favorites",

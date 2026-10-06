@@ -50,5 +50,17 @@ export default defineConfig(({ mode }) => {
   }
   return {
     plugins: [react(), localApi()],
+    build: {
+      rolldownOptions: {
+        output: {
+          codeSplitting: {
+            groups: [
+              { name: 'router-vendor', test: /node_modules[\\/](react-router|react-router-dom|@remix-run)[\\/]/, priority: 20 },
+              { name: 'shared-vendor', test: /node_modules[\\/]/, minShareCount: 2, minSize: 20000, priority: 5 },
+            ],
+          },
+        },
+      },
+    },
   }
 })
