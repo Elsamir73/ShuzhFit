@@ -327,18 +327,10 @@
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 16px;
 }
-.vp-modal-box.is-short {
-  width: min(440px, 100%);
-}
 .vp-modal-frame {
   position: relative;
   aspect-ratio: 16 / 9;
   background: #000;
-}
-.vp-modal-box.is-short .vp-modal-frame {
-  aspect-ratio: 9 / 16;
-  width: min(100%, calc((100dvh - 200px) * 9 / 16));
-  margin-inline: auto;
 }
 .vp-modal-frame iframe {
   position: absolute;

@@ -43,7 +43,13 @@ export function filterPlanExercises(
     return normalized === "beginner" ? 0 : normalized === "intermediate" ? 1 : 2;
   };
   const maxRank = experience === "beginner" ? 0 : experience === "intermediate" ? 1 : 2;
-  return candidates.filter((item) => equipmentMatches(item.equipment) && levelRank(item.level) <= maxRank);
+  // Prehab moves (rotator cuff work and similar) are optional extras, never main plan lifts.
+  return candidates.filter(
+    (item) =>
+      (item.category ?? "").toLowerCase() !== "prehab" &&
+      equipmentMatches(item.equipment) &&
+      levelRank(item.level) <= maxRank,
+  );
 }
 
 export function generateProgramDays(

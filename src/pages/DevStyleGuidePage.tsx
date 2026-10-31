@@ -1,6 +1,13 @@
+import { Helmet } from "react-helmet-async";
+
 export function DevStyleGuidePage() {
   return (
-    <section className="pg page">
+    <>
+      <Helmet>
+        <title>Style guide · Dev</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
+      <section className="pg page">
       <div className="container" style={{ display: "grid", gap: 24 }}>
         <div className="pg-head">
           <span className="pg-kicker">Dev</span>
@@ -68,6 +75,7 @@ export function DevStyleGuidePage() {
           </article>
         </div>
       </div>
-    </section>
+      </section>
+    </>
   );
 }

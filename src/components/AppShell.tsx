@@ -14,8 +14,8 @@ export function AppShell({ children }: PropsWithChildren) {
       <aside className="app-shell-sidebar">
         <Link
           className="app-shell-brand"
-          to="/dashboard"
-          aria-label="ShuzhFit dashboard"
+          to="/today"
+          aria-label="ShuzhFit today"
         >
           <span className="brand-dot" aria-hidden="true" />
           ShuzhFit

@@ -12,7 +12,7 @@ export function AdminRoute({ children }: { children: ReactNode }) {
     return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}` }} />;
   }
   if (user.role !== "admin") {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/today" replace />;
   }
 
   return <>{children}</>;

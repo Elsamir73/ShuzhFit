@@ -15,7 +15,7 @@ export interface ApiResponse {
   status(code: number): ApiResponse;
   json(body: unknown): ApiResponse;
   setHeader(name: string, value: string | string[]): ApiResponse;
-  end(): void;
+  end(chunk?: string): void;
   writableEnded?: boolean;
 }
 

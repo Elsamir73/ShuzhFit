@@ -20,7 +20,8 @@
     "shared/fitness.ts",
     "shared/program.ts",
     "shared/progression.ts",
-    "shared/fallbackVideos.ts"
+    "shared/fallbackVideos.ts",
+    "shared/videos.ts"
   ],
   "exclude": ["server/**/*.test.ts"]
 }

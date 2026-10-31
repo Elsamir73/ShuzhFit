@@ -41,7 +41,7 @@ export function RegisterPage() {
         name,
         isRegister: true,
       });
-      navigate("/dashboard", { replace: true });
+      navigate("/today", { replace: true });
     } catch (submitError) {
       setError(
         submitError instanceof Error

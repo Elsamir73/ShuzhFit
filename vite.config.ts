@@ -8,6 +8,10 @@ function localApi(): import('vite').Plugin {
     name: 'shuzhfit-local-api',
     apply: 'serve',
     configureServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        if (req.url === '/sitemap.xml') req.url = '/api/sitemap'
+        next()
+      })
       server.middlewares.use('/api', async (req, res) => {
         try {
           const chunks: Buffer[] = []

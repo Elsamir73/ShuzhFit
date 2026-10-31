@@ -12,6 +12,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx db/seed.ts",
     "seed": "tsx --env-file=.env db/seed.ts",
+    "import:exercises": "tsx --env-file=.env db/import-exercises.ts",
     "make-admin": "tsx scripts/make-admin.ts",
     "check:content": "node scripts/check-content.mjs"
   },
@@ -28,6 +29,7 @@
     "drizzle-kit": "^0.31.11",
     "drizzle-orm": "^0.45.3",
     "jose": "^6.2.12",
+    "lucide-react": "^1.52.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-helmet-async": "^3.0.0",

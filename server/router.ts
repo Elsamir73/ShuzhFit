@@ -23,11 +23,8 @@ import profile from "./routes/profile.js";
 import program from "./routes/program.js";
 import progress from "./routes/progress.js";
 import search from "./routes/search.js";
+import sitemap from "./routes/sitemap.js";
 import today from "./routes/today.js";
-import trackerNutrition from "./routes/tracker/nutrition.js";
-import trackerProfile from "./routes/tracker/profile.js";
-import trackerProgress from "./routes/tracker/progress.js";
-import trackerWorkouts from "./routes/tracker/workouts.js";
 import workout from "./routes/workouts.js";
 import workoutDetail from "./routes/workouts/[id].js";
 import workoutExercises from "./routes/workouts/[id]/exercises.js";
@@ -37,6 +34,7 @@ import health from "./routes/health.js";
 
 export const routeTable = new Map<string, ApiHandler>([
   ["GET /health", health],
+  ["GET /sitemap", sitemap],
   ["GET /auth/me", authMe],
   ["POST /auth/login", authLogin],
   ["POST /auth/logout", authLogout],
@@ -94,14 +92,6 @@ export const routeTable = new Map<string, ApiHandler>([
   ["GET /search", search],
   ["GET /today", today],
   ["POST /today", today],
-  ["GET /tracker/nutrition", trackerNutrition],
-  ["POST /tracker/nutrition", trackerNutrition],
-  ["GET /tracker/profile", trackerProfile],
-  ["POST /tracker/profile", trackerProfile],
-  ["GET /tracker/progress", trackerProgress],
-  ["POST /tracker/progress", trackerProgress],
-  ["GET /tracker/workouts", trackerWorkouts],
-  ["POST /tracker/workouts", trackerWorkouts],
   ["GET /workouts", workout],
   ["POST /workouts", workout],
   ["PATCH /workouts", workout],
@@ -218,15 +208,14 @@ export async function dispatchApiRequest(
     req.query = query;
 
     const isYouTube = pathname === "/youtube/videos" || pathname === "/content/videos" || pathname === "/videos";
-    const isHealth = pathname === "/health";
+    const isPublicWithoutDb = pathname === "/health" || pathname === "/sitemap";
     const isLoggedOutSessionCheck = req.method?.toUpperCase() === "GET" && pathname === "/auth/me" &&
       !header(req, "cookie")?.split(";").some((part) => part.trim().startsWith("shuzhfit_session="));
-    if (!isYouTube && !isHealth && !isLoggedOutSessionCheck) requireServerEnv("DATABASE_URL");
+    if (!isYouTube && !isPublicWithoutDb && !isLoggedOutSessionCheck) requireServerEnv("DATABASE_URL");
     const jwtPaths = [
       "/auth/", "/admin/", "/onboarding", "/nutrition",
       "/profile", "/program", "/progress", "/today",
-      "/tracker/", "/workouts", "/content/favorites",
-      "/workouts/",
+      "/workouts", "/content/favorites", "/workouts/",
     ];
     if (!isLoggedOutSessionCheck && jwtPaths.some((prefix) => pathname.startsWith(prefix))) requireServerEnv("JWT_SECRET");
 

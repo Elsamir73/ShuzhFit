@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { excludeShorts } from "../../shared/videos";
 import "../styles/videos.css";
 
 type Video = {
@@ -53,7 +54,7 @@ function toVideo(raw: unknown): Video | null {
         : seconds
           ? formatDuration(seconds)
           : null,
-    isShort: raw.isShort !== false,
+    isShort: raw.isShort === true,
   };
 }
 
@@ -110,7 +111,7 @@ function VideoModal({ video, onClose }: { video: Video; onClose: () => void }) {
       onClick={onClose}
     >
       <div
-        className={`vp-modal-box${video.isShort ? " is-short" : ""}`}
+        className="vp-modal-box"
         onClick={(event) => event.stopPropagation()}
       >
         <button
@@ -171,10 +172,9 @@ export function VideosPage() {
           : isRecord(data) && Array.isArray(data.videos)
             ? data.videos
             : [];
-        const items = list
-          .map(toVideo)
-          .filter((video): video is Video => video !== null)
-          .slice(0, MAX_VIDEOS);
+        const items = excludeShorts(
+          list.map(toVideo).filter((video): video is Video => video !== null),
+        ).slice(0, MAX_VIDEOS);
         setVideos(items);
         setStatus("ready");
       })

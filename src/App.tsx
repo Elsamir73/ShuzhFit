@@ -64,11 +64,6 @@ const RegisterPage = lazy(() =>
     default: module.RegisterPage,
   })),
 );
-const DashboardPage = lazy(() =>
-  import("./pages/DashboardPage").then((module) => ({
-    default: module.DashboardPage,
-  })),
-);
 const DevStyleGuidePage = lazy(() =>
   import("./pages/DevStyleGuidePage").then((module) => ({
     default: module.DevStyleGuidePage,
@@ -374,9 +369,7 @@ function App() {
             path="/dashboard"
             element={
               <ProtectedRoute>
-                <Layout>
-                  <DashboardPage />
-                </Layout>
+                <Navigate to="/today" replace />
               </ProtectedRoute>
             }
           />

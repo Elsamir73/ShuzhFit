@@ -40,4 +40,12 @@ describe("generateProgramDays", () => {
     const { days } = generateProgramDays(choices, { daysPerWeek: 3, equipment: "gym", experience });
     expect(days.flatMap((day) => day.exercises).every((exercise) => experience === "advanced" || exercise.level !== "Advanced")).toBe(true);
   });
+  it("never schedules prehab exercises", () => {
+    const withPrehab: PlanExerciseChoice[] = [
+      ...choices,
+      { id: 99, name: "Cable External Rotation", equipment: "Cable machine", level: "Beginner", muscles: "Rotator cuff", muscleGroup: "shoulders", category: "Prehab" },
+    ];
+    const { days } = generateProgramDays(withPrehab, { daysPerWeek: 5, equipment: "gym", experience: "beginner" });
+    expect(days.flatMap((day) => day.exercises).some((exercise) => exercise.id === 99)).toBe(false);
+  });
 });

@@ -18,11 +18,11 @@ export function LoginPage() {
     location.state &&
     "from" in location.state
       ? String(location.state.from)
-      : "/dashboard";
+      : "/today";
   const candidate = requestedNext ?? stateFrom;
   const from = candidate.startsWith("/") && !candidate.startsWith("//") && !candidate.includes("\\") && !/^[a-z][a-z\d+.-]*:/i.test(candidate)
     ? candidate
-    : "/dashboard";
+    : "/today";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

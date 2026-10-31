@@ -405,7 +405,7 @@ async function main() {
       db
         .insert(exercises)
         .values(exercise)
-        .onConflictDoUpdate({ target: exercises.slug, set: exercise })
+        .onConflictDoNothing({ target: exercises.slug })
         .execute(),
     ),
   );

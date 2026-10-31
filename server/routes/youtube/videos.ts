@@ -1,4 +1,5 @@
 import { fallbackVideos } from "../../../shared/fallbackVideos.js";
+import { excludeShorts, isShortDuration, looksLikeShortsUrl } from "../../../shared/videos.js";
 import { getYouTubeEnv } from "../../lib/env.js";
 import type { ApiRequest, ApiResponse } from "../../lib/http.js";
 import { sendError } from "../../lib/http.js";
@@ -64,7 +65,7 @@ export async function loadFromApi(apiKey: string, channelId: string): Promise<Vi
   ]));
   return entries.map((video) => {
     const duration = durations.get(video.id) ?? 0;
-    return { ...video, durationSeconds: duration, isShort: duration > 0 && duration <= 60 };
+    return { ...video, durationSeconds: duration, isShort: isShortDuration(duration) };
   });
 }
 
@@ -80,13 +81,15 @@ export async function loadFromRss(channelId: string): Promise<Video[]> {
     const id = entry.match(/<yt:videoId>([^<]+)<\/yt:videoId>/)?.[1];
     const title = entry.match(/<title>([^<]+)<\/title>/)?.[1];
     if (!id || !title) return [];
+    // Regular uploads link to /watch; Shorts link to /shorts/.
+    const link = entry.match(/<link[^>]*href="([^"]+)"/)?.[1] ?? "";
     return [{
       id,
       title: decodeXml(title),
       thumbnail: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
       publishedAt: entry.match(/<published>([^<]+)<\/published>/)?.[1] ?? new Date(0).toISOString(),
       durationSeconds: 0,
-      isShort: false,
+      isShort: looksLikeShortsUrl(link),
       url: `https://www.youtube.com/watch?v=${id}`,
     }];
   });
@@ -104,7 +107,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
     try {
       const videos = await loadFromApi(env.apiKey, env.channelId);
       if (videos.length) {
-        res.status(200).json({ source: "api", videos });
+        res.status(200).json({ source: "api", videos: excludeShorts(videos) });
         return;
       }
     } catch (error) {
@@ -116,7 +119,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
     try {
       const videos = await loadFromRss(env.channelId);
       if (videos.length) {
-        res.status(200).json({ source: "rss", videos });
+        res.status(200).json({ source: "rss", videos: excludeShorts(videos) });
         return;
       }
     } catch (error) {
@@ -124,5 +127,5 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
     }
   }
 
-  res.status(200).json({ source: "static", videos: fallbackVideos });
+  res.status(200).json({ source: "static", videos: excludeShorts(fallbackVideos) });
 }
