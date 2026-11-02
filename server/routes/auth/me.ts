@@ -24,7 +24,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
       return;
     }
     res.status(200).json({ user: { id: String(user.id), name: user.name, email: user.email, role: user.role === "admin" ? "admin" as const : "user" as const, onboarded: Boolean(user.onboardedAt) } });
-  } catch {
+  } catch (error) {
+    console.error("ME_FAILED", error);
     sendError(res, 500, "SESSION_LOOKUP_FAILED", "Unable to load your session.");
   }
 }

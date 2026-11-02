@@ -60,7 +60,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
     const user = { id: String(userRow.id), name: userRow.name, email: userRow.email, role: userRow.role === "admin" ? "admin" as const : "user" as const, onboarded: Boolean(userRow.onboardedAt) };
     setSessionCookie(res, await createAuthToken(user));
     res.status(200).json({ user });
-  } catch {
+  } catch (error) {
+    console.error("LOGIN_FAILED", error);
     sendError(res, 500, "LOGIN_FAILED", "Unable to log in right now.");
   }
 }
