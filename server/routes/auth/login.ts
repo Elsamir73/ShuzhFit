@@ -1,6 +1,8 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { createAuthToken, normalizeEmail, setSessionCookie, verifyPassword } from "./_helpers.js";
+import { sendMail } from "../../lib/mailer.js";
+import { welcomeEmail } from "../../lib/emailTemplates.js";
 import { header, parseBody, requireJson, requireOrigin, sendError, type ApiRequest, type ApiResponse } from "../../lib/http.js";
 
 const loginSchema = z.object({ email: z.string().trim().email().max(255), password: z.string().min(8).max(128) });
@@ -53,10 +55,38 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
       return;
     }
 
+    if (!userRow.emailVerifiedAt) {
+      sendError(res, 403, "EMAIL_NOT_VERIFIED", "Please verify your email first.");
+      return;
+    }
+
     await db.delete(schema.loginAttempts).where(and(
       eq(schema.loginAttempts.email, email), eq(schema.loginAttempts.ipAddress, ipAddress),
     ));
     await db.update(schema.users).set({ lastLoginAt: new Date() }).where(eq(schema.users.id, userRow.id));
+    if (!userRow.welcomeSentAt) {
+      try {
+        const [claim] = await db.update(schema.users)
+          .set({ welcomeSentAt: new Date() })
+          .where(and(eq(schema.users.id, userRow.id), isNull(schema.users.welcomeSentAt)))
+          .returning({ id: schema.users.id });
+        if (claim) {
+          const appUrl = process.env.APP_URL?.trim().replace(/\/+$/u, "");
+          if (!appUrl) {
+            console.error("Welcome email not sent: APP_URL is not configured.");
+            await db.update(schema.users).set({ welcomeSentAt: null }).where(eq(schema.users.id, userRow.id));
+          } else {
+            const welcome = welcomeEmail(userRow.name, appUrl);
+            const sent = await sendMail({ to: userRow.email, ...welcome });
+            if (!sent) {
+              await db.update(schema.users).set({ welcomeSentAt: null }).where(eq(schema.users.id, userRow.id));
+            }
+          }
+        }
+      } catch (error) {
+        console.error("WELCOME_EMAIL_FAILED", error);
+      }
+    }
     const user = { id: String(userRow.id), name: userRow.name, email: userRow.email, role: userRow.role === "admin" ? "admin" as const : "user" as const, onboarded: Boolean(userRow.onboardedAt) };
     setSessionCookie(res, await createAuthToken(user));
     res.status(200).json({ user });

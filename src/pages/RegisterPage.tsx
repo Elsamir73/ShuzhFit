@@ -1,17 +1,21 @@
 import { Helmet } from "react-helmet-async";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { authenticateUser } from "../lib/auth";
+import { registerAccount, resendVerificationEmail } from "../lib/auth";
+import { validatePassword } from "../../shared/password";
 
 export function RegisterPage() {
-  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [registrationComplete, setRegistrationComplete] = useState(false);
+  const [emailSent, setEmailSent] = useState(true);
+  const [resendMessage, setResendMessage] = useState("");
+  const [isResending, setIsResending] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -22,26 +26,22 @@ export function RegisterPage() {
       return;
     }
 
-    if (password.length < 8) {
-      setError("Use at least 8 characters for your password.");
-      return;
-    }
-
-    if (password.length > 128) {
-      setError("Use no more than 128 characters for your password.");
+    const passwordError = validatePassword(password, { email, name });
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      await authenticateUser({
+      const result = await registerAccount({
         email,
         password,
         name,
-        isRegister: true,
       });
-      navigate("/today", { replace: true });
+      setEmailSent(result.emailSent);
+      setRegistrationComplete(true);
     } catch (submitError) {
       setError(
         submitError instanceof Error
@@ -50,6 +50,19 @@ export function RegisterPage() {
       );
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function handleResend() {
+    setIsResending(true);
+    setResendMessage("");
+    try {
+      await resendVerificationEmail(email);
+      setResendMessage("If the account is eligible, a verification email will be sent.");
+    } catch (resendError) {
+      setResendMessage(resendError instanceof Error ? resendError.message : "Unable to resend the email.");
+    } finally {
+      setIsResending(false);
     }
   }
 
@@ -65,6 +78,24 @@ export function RegisterPage() {
 
       <section className="pg page">
         <div className="container" style={{ maxWidth: 620 }}>
+          {registrationComplete ? (
+            <div className="auth-card" role="status">
+              <div className="pg-head" style={{ marginBottom: 20 }}>
+                <span className="pg-kicker">One more step</span>
+                <h1>Check your email</h1>
+                <p className="pg-intro">
+                  We sent a verification link to {email}. Verify your email before logging in.
+                </p>
+                {!emailSent ? <p role="alert">We could not send the email. You can try again below.</p> : null}
+                <button className="btn btn-primary" type="button" onClick={handleResend} disabled={isResending}>
+                  {isResending ? "Sending..." : "Resend verification email"}
+                </button>
+                {resendMessage ? <p role="status">{resendMessage}</p> : null}
+                <p><Link to="/login">Go to log in</Link></p>
+              </div>
+            </div>
+          ) : (
+          <>
           <div className="pg-head" style={{ marginBottom: 28 }}>
             <span className="pg-kicker">Start here</span>
             <h1>Create your account</h1>
@@ -96,15 +127,17 @@ export function RegisterPage() {
               </label>
 
               <label className="field">
-                <span>Password (8–128 characters)</span>
+                <span>Password (8–64 characters)</span>
                 <input
                   type="password"
-                  maxLength={128}
+                  maxLength={64}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   required
                 />
               </label>
+              <p className="legal-note">Use 8–64 characters with at least one letter and one number. Avoid common passwords, sequences, repeated characters, your name, and your email username.</p>
+              {password ? <p className="legal-note" role="status">{validatePassword(password, { email, name }) ?? "Password meets the requirements."}</p> : null}
 
               <label className="field">
                 <span>Confirm password</span>
@@ -136,6 +169,8 @@ export function RegisterPage() {
           <p className="auth-switch">
             Already a member? <Link to="/login">Log in</Link>
           </p>
+          </>
+          )}
         </div>
       </section>
     </>

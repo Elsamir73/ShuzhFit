@@ -64,6 +64,11 @@ const RegisterPage = lazy(() =>
     default: module.RegisterPage,
   })),
 );
+const VerifyEmailPage = lazy(() =>
+  import("./pages/VerifyEmailPage").then((module) => ({
+    default: module.VerifyEmailPage,
+  })),
+);
 const DevStyleGuidePage = lazy(() =>
   import("./pages/DevStyleGuidePage").then((module) => ({
     default: module.DevStyleGuidePage,
@@ -351,6 +356,14 @@ function App() {
             element={
               <Layout>
                 <RegisterPage />
+              </Layout>
+            }
+          />
+          <Route
+            path="/verify-email"
+            element={
+              <Layout>
+                <VerifyEmailPage />
               </Layout>
             }
           />

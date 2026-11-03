@@ -39,6 +39,8 @@ export const users = pgTable(
     weeklyWorkoutTarget: integer("weekly_workout_target").notNull().default(3),
     targetWeightKg: decimal("target_weight_kg", { precision: 6, scale: 2 }),
     onboardedAt: timestamp("onboarded_at", { withTimezone: true }),
+    emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
+    welcomeSentAt: timestamp("welcome_sent_at", { withTimezone: true }),
     lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -59,6 +61,28 @@ export const loginAttempts = pgTable("login_attempts", {
 }, (table) => ({
   emailIpUnique: uniqueIndex("login_attempts_email_ip_unique").on(table.email, table.ipAddress),
   lockedIdx: index("login_attempts_locked_idx").on(table.lockedUntil),
+}));
+
+export const emailVerificationTokens = pgTable("email_verification_tokens", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: varchar("token_hash", { length: 64 }).notNull().unique(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const contactMessages = pgTable("contact_messages", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 80 }).notNull(),
+  email: varchar("email", { length: 255 }).notNull(),
+  subject: varchar("subject", { length: 120 }),
+  message: text("message").notNull(),
+  isRead: boolean("is_read").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  ipAddress: varchar("ip_address", { length: 64 }).notNull(),
+}, (table) => ({
+  createdIdx: index("contact_messages_created_idx").on(table.createdAt),
+  ipCreatedIdx: index("contact_messages_ip_created_idx").on(table.ipAddress, table.createdAt),
 }));
 
 export const blogs = pgTable(
@@ -178,6 +202,13 @@ export const contacts = pgTable("contacts", {
     .notNull()
     .defaultNow(),
 });
+
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
+export type EmailVerificationToken = typeof emailVerificationTokens.$inferSelect;
+export type NewEmailVerificationToken = typeof emailVerificationTokens.$inferInsert;
+export type ContactMessage = typeof contactMessages.$inferSelect;
+export type NewContactMessage = typeof contactMessages.$inferInsert;
 
 export const media = pgTable("media", {
   id: serial("id").primaryKey(),

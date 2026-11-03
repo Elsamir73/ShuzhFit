@@ -12,6 +12,8 @@ import authLogin from "./routes/auth/login.js";
 import authLogout from "./routes/auth/logout.js";
 import authMe from "./routes/auth/me.js";
 import authRegister from "./routes/auth/register.js";
+import authVerifyEmail from "./routes/auth/verifyEmail.js";
+import authResendVerification from "./routes/auth/resendVerification.js";
 import contact from "./routes/contact.js";
 import contentBlogs from "./routes/content/blogs.js";
 import contentComments from "./routes/content/comments.js";
@@ -39,6 +41,9 @@ export const routeTable = new Map<string, ApiHandler>([
   ["POST /auth/login", authLogin],
   ["POST /auth/logout", authLogout],
   ["POST /auth/register", authRegister],
+  ["GET /auth/verify-email", authVerifyEmail],
+  ["POST /auth/verify-email", authVerifyEmail],
+  ["POST /auth/resend-verification", authResendVerification],
   ["GET /admin/blogs", adminBlogs],
   ["GET /admin/overview", adminOverview],
   ["GET /admin/members", adminMembers],

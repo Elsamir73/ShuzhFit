@@ -2,7 +2,7 @@ import { Helmet } from "react-helmet-async";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { authenticateUser } from "../lib/auth";
+import { authenticateUser, resendVerificationEmail } from "../lib/auth";
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -11,6 +11,9 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [resendMessage, setResendMessage] = useState("");
+  const [isResending, setIsResending] = useState(false);
 
   const requestedNext = new URLSearchParams(location.search).get("next");
   const stateFrom =
@@ -27,19 +30,34 @@ export function LoginPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    setNeedsVerification(false);
+    setResendMessage("");
     setIsSubmitting(true);
 
     try {
       const user = await authenticateUser({ email, password });
       navigate(user.role === "admin" ? "/admin" : from, { replace: true });
     } catch (submitError) {
-      setError(
-        submitError instanceof Error
-          ? submitError.message
-          : "Unable to log in right now.",
-      );
+      const message = submitError instanceof Error
+        ? submitError.message
+        : "Unable to log in right now.";
+      setError(message);
+      setNeedsVerification(message === "Please verify your email first");
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function handleResend() {
+    setIsResending(true);
+    setResendMessage("");
+    try {
+      await resendVerificationEmail(email);
+      setResendMessage("If the account is eligible, a verification email will be sent.");
+    } catch (resendError) {
+      setResendMessage(resendError instanceof Error ? resendError.message : "Unable to resend the email.");
+    } finally {
+      setIsResending(false);
     }
   }
 
@@ -88,6 +106,14 @@ export function LoginPage() {
               {error ? (
                 <div role="alert" className="form-message">
                   {error}
+                </div>
+              ) : null}
+              {needsVerification ? (
+                <div>
+                  <button className="btn btn-secondary" type="button" onClick={handleResend} disabled={isResending}>
+                    {isResending ? "Sending..." : "Resend verification email"}
+                  </button>
+                  {resendMessage ? <p role="status">{resendMessage}</p> : null}
                 </div>
               ) : null}
 

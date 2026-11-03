@@ -23,7 +23,8 @@
     "shared/program.ts",
     "shared/progression.ts",
     "shared/fallbackVideos.ts",
-    "shared/videos.ts"
+    "shared/videos.ts",
+    "shared/password.ts"
   ],
   "exclude": ["server/**/*.test.ts"]
 }
