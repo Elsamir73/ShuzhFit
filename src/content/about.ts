@@ -1,11 +1,13 @@
 export const aboutCopy = {
+  heroLine:
+    "I'm Samir Pathak, 23, from Kathmandu, Nepal. About a year into the gym, sharing everything I learn along the way.",
   whyStarted:
-    "I wanted to change my physique, build muscle and get stronger. What started as a personal goal became a passion, so I started ShuzhFit to document my transformation and share what I learn along the way.",
+    "I'm not a pro. I started going to the gym about a year ago to build muscle and get stronger, and I had no idea where to begin. Whatever I learn, I share. I started the ShuzhFit YouTube channel to record my journey, and it grew into something bigger.",
   whatItIs:
-    "I'm an ordinary guy from Nepal trying to become a better version of myself through fitness. I'm not a professional athlete or a fitness expert. I'm someone who believes in staying active, learning and improving every day. ShuzhFit is where I share that journey and connect with people working toward their own goals.",
+    "ShuzhFit is a platform for everyone who wants to start the gym and fitness but doesn't know how or where to start. I'm building it with everything I know, so you don't have to figure it out alone.",
   whatYouGet:
-    "Real gym experiences, workout routines, exercise demonstrations, nutrition tips, fitness knowledge and lessons from my own journey. No fake transformations and no unrealistic promises, just genuine progress.",
+    "Browse a library of exercises with step-by-step guides and watch my videos on YouTube, no account needed. Or join for free and track your workouts and food. Whether your goal is gaining muscle or losing fat, ShuzhFit suggests a plan, tracks your exercise and nutrition, and keeps you moving toward your goal. Your data is protected.",
   community:
     "Consistency matters more than perfection. You don't need to be the strongest or the fittest person in the gym, you just need to keep showing up. God, Goals and Gains.",
-  contact: "Message me on YouTube, or",
+  contact: "Message me on YouTube or use the",
 };

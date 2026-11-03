@@ -161,7 +161,9 @@ export function VideosPage() {
     document.title = "Videos | ShuzhFit";
     const controller = new AbortController();
 
-    fetch(`/api/youtube/videos?limit=${MAX_VIDEOS}`, { signal: controller.signal })
+    fetch(`/api/youtube/videos?limit=${MAX_VIDEOS}`, {
+      signal: controller.signal,
+    })
       .then((res) => {
         if (!res.ok) throw new Error(String(res.status));
         return res.json() as Promise<unknown>;
@@ -218,7 +220,6 @@ export function VideosPage() {
             </a>
           </div>
         </header>
-
         {status === "loading" && (
           <div className="vp-grid" aria-busy="true">
             {Array.from({ length: MAX_VIDEOS }, (_, index) => (
@@ -229,7 +230,6 @@ export function VideosPage() {
             ))}
           </div>
         )}
-
         {status === "ready" && videos.length > 0 && (
           <ul className="vp-grid">
             {videos.map((video) => (
@@ -259,7 +259,6 @@ export function VideosPage() {
             ))}
           </ul>
         )}
-
         {(status === "error" ||
           (status === "ready" && videos.length === 0)) && (
           <div className="vp-empty">
@@ -278,34 +277,7 @@ export function VideosPage() {
             </a>
           </div>
         )}
-
-        <section className="vp-cta">
-          <div>
-            <h2>More workouts on YouTube</h2>
-            <p>
-              New training videos and Shorts are posted on the channel.
-              Subscribe so you don't miss them.
-            </p>
-          </div>
-          <div className="vp-actions">
-            <a
-              className="vp-btn vp-btn--primary"
-              href={SUBSCRIBE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Subscribe
-            </a>
-            <a
-              className="vp-btn"
-              href={MORE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Watch more on YouTube
-            </a>
-          </div>
-        </section>
+        ?
       </div>
 
       {selected && <VideoModal video={selected} onClose={closeModal} />}

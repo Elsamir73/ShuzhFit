@@ -5,6 +5,49 @@ import type { ApiRequest, ApiResponse } from "../../lib/http.js";
 import { sendError } from "../../lib/http.js";
 
 type Video = (typeof fallbackVideos)[number];
+const successfulResults = new Map<string, {
+  videos: Video[];
+  cachedAt: number;
+}>();
+const cacheDurationMs = 30 * 60 * 1000;
+
+function apiErrorReason(body: unknown): string {
+  if (typeof body !== "object" || body === null || !("error" in body)) return "unknown";
+  const error = body.error;
+  if (typeof error !== "object" || error === null) return "unknown";
+  if ("errors" in error && Array.isArray(error.errors)) {
+    const reasons = error.errors.flatMap((item: unknown) =>
+      typeof item === "object" && item !== null && "reason" in item &&
+      typeof item.reason === "string" ? [item.reason] : [],
+    );
+    if (reasons.length) return [...new Set(reasons)].join(", ");
+  }
+  if ("status" in error && typeof error.status === "string") return error.status;
+  return "unknown";
+}
+
+async function fetchYouTubeApi(url: string, operation: string, channelId: string): Promise<Response> {
+  const response = await fetch(url, { signal: AbortSignal.timeout(6000) });
+  if (!response.ok) {
+    let body: unknown;
+    try {
+      body = await response.clone().json() as unknown;
+    } catch {
+      body = null;
+    }
+    throw new Error(
+      `${operation} returned HTTP ${response.status} (reason: ${apiErrorReason(body)}) for channel ${channelId}`,
+    );
+  }
+  return response;
+}
+
+function cacheSuccessfulResult(
+  channelId: string,
+  videos: Video[],
+): void {
+  if (videos.length) successfulResults.set(channelId, { videos, cachedAt: Date.now() });
+}
 
 function durationSeconds(value: string): number {
   const parts = value.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
@@ -17,11 +60,11 @@ function decodeXml(value: string): string {
 }
 
 export async function loadFromApi(apiKey: string, channelId: string, limit = 5): Promise<Video[]> {
-  const channelResponse = await fetch(
+  const channelResponse = await fetchYouTubeApi(
     `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${encodeURIComponent(channelId)}&key=${encodeURIComponent(apiKey)}`,
-    { signal: AbortSignal.timeout(6000) },
+    "YouTube channels API",
+    channelId,
   );
-  if (!channelResponse.ok) throw new Error("YouTube channel request failed");
   const channelData = await channelResponse.json() as {
     items?: Array<{ contentDetails?: { relatedPlaylists?: { uploads?: string } } }>;
   };
@@ -34,11 +77,11 @@ export async function loadFromApi(apiKey: string, channelId: string, limit = 5):
 
   for (let page = 0; page < maxPages; page += 1) {
     const pageTokenParam = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : "";
-    const playlistResponse = await fetch(
+    const playlistResponse = await fetchYouTubeApi(
       `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${encodeURIComponent(uploads)}&key=${encodeURIComponent(apiKey)}${pageTokenParam}`,
-      { signal: AbortSignal.timeout(6000) },
+      "YouTube playlistItems API",
+      channelId,
     );
-    if (!playlistResponse.ok) throw new Error("YouTube playlist request failed");
     const playlistData = await playlistResponse.json() as {
       items?: Array<{ snippet?: { title?: string; publishedAt?: string; resourceId?: { videoId?: string } } }>;
       nextPageToken?: string;
@@ -58,11 +101,11 @@ export async function loadFromApi(apiKey: string, channelId: string, limit = 5):
     });
     if (!entries.length) break;
 
-    const detailsResponse = await fetch(
+    const detailsResponse = await fetchYouTubeApi(
       `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${encodeURIComponent(entries.map((video) => video.id).join(","))}&key=${encodeURIComponent(apiKey)}`,
-      { signal: AbortSignal.timeout(6000) },
+      "YouTube videos API",
+      channelId,
     );
-    if (!detailsResponse.ok) throw new Error("YouTube video details request failed");
     const details = await detailsResponse.json() as {
       items?: Array<{ id: string; contentDetails?: { duration?: string } }>;
     };
@@ -122,31 +165,53 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
     ? parsedLimit
     : 5;
 
-  if (env.apiKey && env.channelId) {
+  const channelId = env.channelId;
+  if (!env.apiKey) {
+    console.warn(`YouTube Data API skipped: API key missing (channel ID: ${channelId ?? "not configured"})`);
+  } else if (!channelId) {
+    console.warn("YouTube Data API skipped: channel ID missing (channel ID: not configured)");
+  } else {
     try {
-      const videos = await loadFromApi(env.apiKey, env.channelId, limit);
+      const videos = await loadFromApi(env.apiKey, channelId, limit);
       const regularVideos = excludeShorts(videos, limit);
       if (regularVideos.length) {
+        cacheSuccessfulResult(channelId, regularVideos);
         res.status(200).json({ source: "api", videos: regularVideos });
         return;
       }
+      console.warn(`YouTube Data API returned no eligible videos (channel ID: ${channelId})`);
     } catch (error) {
-      console.error("YouTube Data API failed:", error instanceof Error ? error.message : String(error));
+      console.error(`YouTube Data API failed (channel ID: ${channelId}):`, error instanceof Error ? error.message : String(error));
     }
   }
 
-  if (env.channelId) {
+  if (channelId) {
     try {
-      const videos = await loadFromRss(env.channelId);
+      const videos = await loadFromRss(channelId);
       const regularVideos = excludeShorts(videos, limit);
       if (regularVideos.length) {
+        cacheSuccessfulResult(channelId, regularVideos);
         res.status(200).json({ source: "rss", videos: regularVideos });
         return;
       }
+      console.warn(`YouTube RSS feed returned no eligible videos (channel ID: ${channelId})`);
     } catch (error) {
-      console.error("YouTube RSS feed failed:", error instanceof Error ? error.message : String(error));
+      console.error(`YouTube RSS feed failed (channel ID: ${channelId}):`, error instanceof Error ? error.message : String(error));
     }
+  } else {
+    console.warn("YouTube RSS feed skipped: channel ID missing");
   }
 
-  res.status(200).json({ source: "static", videos: excludeShorts(fallbackVideos, limit) });
+  const cachedResult = channelId ? successfulResults.get(channelId) : undefined;
+  if (cachedResult && Date.now() - cachedResult.cachedAt <= cacheDurationMs) {
+    res.status(200).json({ source: "cache", videos: excludeShorts(cachedResult.videos, limit) });
+    return;
+  }
+
+  const staticVideos = excludeShorts(fallbackVideos, limit);
+  if (staticVideos.length) {
+    res.status(200).json({ source: "static", videos: staticVideos });
+    return;
+  }
+  res.status(200).json({ source: "static", videos: [] });
 }
