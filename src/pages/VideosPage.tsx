@@ -161,7 +161,7 @@ export function VideosPage() {
     document.title = "Videos | ShuzhFit";
     const controller = new AbortController();
 
-    fetch("/api/youtube/videos", { signal: controller.signal })
+    fetch(`/api/youtube/videos?limit=${MAX_VIDEOS}`, { signal: controller.signal })
       .then((res) => {
         if (!res.ok) throw new Error(String(res.status));
         return res.json() as Promise<unknown>;

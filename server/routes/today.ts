@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, gte } from "drizzle-orm";
 import { z } from "zod";
 import { calculateFitnessMetrics, calculateGoalProgressToward, calculateStreak, type FitnessGoal } from "../../shared/fitness.js";
-import { getTodayInsights } from "../lib/insights.js";
+import { countMissedPlannedSessions, getTodayInsights } from "../lib/insights.js";
 import { requireAuth, parseBody, requireJson, requireOrigin, sendError, type ApiRequest, type ApiResponse } from "../lib/http.js";
 import { sql } from "drizzle-orm";
 
@@ -116,8 +116,12 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
       return { date: iso, day: weekdayNames[weekday], status: done ? "done" : planned ? "planned" : "rest" };
     });
     const activityDateSet = new Set(activityDates);
-    const missedPlannedSessions = Array.from({ length: 14 }, (_, index) => plusDays(twoWeeksAgo, index))
-      .filter((date) => plannedByWeekday.has((date.getUTCDay() + 6) % 7) && dateKey(date) < todayIso && !activityDateSet.has(dateKey(date))).length;
+    const missedPlannedSessions = countMissedPlannedSessions({
+      plannedWeekdays: [...plannedByWeekday],
+      activityDates: [...activityDateSet],
+      planCreatedAt: program?.createdAt ?? null,
+      today,
+    });
 
     const weightSamples = progress.filter((entry) => entry.weightKg !== null).map((entry) => ({ date: dateKey(entry.date), weightKg: asNumber(entry.weightKg) })).sort((a, b) => a.date.localeCompare(b.date));
     const latestWeight = latestWeights[0]?.weightKg === null || latestWeights[0]?.weightKg === undefined ? null : asNumber(latestWeights[0].weightKg);
@@ -154,6 +158,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
 
     res.status(200).json({
       date: todayIso,
+      hasActivePlan: Boolean(program),
       plannedWorkout: todayProgramDay ? { id: todayProgramDay.id, name: todayProgramDay.name, split: program?.split ?? "full_body", shortened: shorterSessionSelected, exercises: shorterSessionSelected ? plannedExercises.slice(0, 3) : plannedExercises } : null,
       inProgressWorkout: inProgress ? { id: inProgress.id, name: inProgress.name, startedAt: inProgress.startedAt } : null,
       week: weekStrip,

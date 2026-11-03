@@ -14,6 +14,38 @@ export interface TodayInsight {
   calorieDelta?: number;
 }
 
+export function countMissedPlannedSessions(input: {
+  plannedWeekdays: readonly number[];
+  activityDates: readonly string[];
+  planCreatedAt: Date | string | null;
+  today: Date | string;
+}): number {
+  if (!input.planCreatedAt) return 0;
+  const planCreatedAt = input.planCreatedAt instanceof Date
+    ? input.planCreatedAt
+    : new Date(input.planCreatedAt);
+  const today = input.today instanceof Date ? input.today : new Date(input.today);
+  if (!Number.isFinite(planCreatedAt.getTime()) || !Number.isFinite(today.getTime())) return 0;
+
+  const planCreatedDate = planCreatedAt.toISOString().slice(0, 10);
+  const todayDate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+  const activeWeekdays = new Set(input.plannedWeekdays);
+  const activityDates = new Set(input.activityDates);
+  let missed = 0;
+
+  for (let daysAgo = 13; daysAgo > 0; daysAgo -= 1) {
+    const date = new Date(todayDate);
+    date.setUTCDate(date.getUTCDate() - daysAgo);
+    const dateKey = date.toISOString().slice(0, 10);
+    const weekday = (date.getUTCDay() + 6) % 7;
+    if (dateKey > planCreatedDate && activeWeekdays.has(weekday) && !activityDates.has(dateKey)) {
+      missed += 1;
+    }
+  }
+
+  return missed;
+}
+
 export function getTodayInsights(input: {
   missedPlannedSessions: number;
   goal: FitnessGoal;

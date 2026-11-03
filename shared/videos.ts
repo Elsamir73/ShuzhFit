@@ -18,6 +18,8 @@ export function looksLikeShortsUrl(url: string): boolean {
 
 export function excludeShorts<T extends { isShort: boolean }>(
   videos: readonly T[],
+  limit?: number,
 ): T[] {
-  return videos.filter((video) => !video.isShort);
+  const regularVideos = videos.filter((video) => !video.isShort);
+  return limit === undefined ? regularVideos : regularVideos.slice(0, limit);
 }

@@ -19,11 +19,26 @@ describe("shorts filtering", () => {
 
   it("removes Shorts while keeping normal uploads in order", () => {
     const videos = [
-      { id: "long-1", isShort: false },
-      { id: "short-1", isShort: true },
-      { id: "long-2", isShort: false },
+      { id: "unknown", durationSeconds: 0, isShort: isShortDuration(0) },
+      { id: "short", durationSeconds: 45, isShort: isShortDuration(45) },
+      { id: "long", durationSeconds: 600, isShort: isShortDuration(600) },
     ];
-    expect(excludeShorts(videos).map((video) => video.id)).toEqual(["long-1", "long-2"]);
+    expect(excludeShorts(videos).map((video) => video.id)).toEqual(["unknown", "long"]);
     expect(excludeShorts([])).toEqual([]);
+  });
+
+  it("applies the limit after filtering Shorts", () => {
+    const videos = [
+      { id: "short-1", isShort: true },
+      { id: "regular-1", isShort: false },
+      { id: "short-2", isShort: true },
+      { id: "regular-2", isShort: false },
+      { id: "regular-3", isShort: false },
+    ];
+
+    expect(excludeShorts(videos, 2).map((video) => video.id)).toEqual([
+      "regular-1",
+      "regular-2",
+    ]);
   });
 });

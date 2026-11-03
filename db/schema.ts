@@ -438,6 +438,7 @@ export const programs = pgTable("programs", {
   name: varchar("name", { length: 160 }).notNull(),
   split: varchar("split", { length: 30 }).notNull(),
   isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const programDays = pgTable("program_days", {

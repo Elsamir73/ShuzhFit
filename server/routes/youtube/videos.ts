@@ -16,7 +16,7 @@ function decodeXml(value: string): string {
     .replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
 }
 
-export async function loadFromApi(apiKey: string, channelId: string): Promise<Video[]> {
+export async function loadFromApi(apiKey: string, channelId: string, limit = 5): Promise<Video[]> {
   const channelResponse = await fetch(
     `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${encodeURIComponent(channelId)}&key=${encodeURIComponent(apiKey)}`,
     { signal: AbortSignal.timeout(6000) },
@@ -28,45 +28,58 @@ export async function loadFromApi(apiKey: string, channelId: string): Promise<Vi
   const uploads = channelData.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
   if (!uploads) throw new Error("YouTube uploads playlist was unavailable");
 
-  const playlistResponse = await fetch(
-    `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${encodeURIComponent(uploads)}&key=${encodeURIComponent(apiKey)}`,
-    { signal: AbortSignal.timeout(6000) },
-  );
-  if (!playlistResponse.ok) throw new Error("YouTube playlist request failed");
-  const playlistData = await playlistResponse.json() as {
-    items?: Array<{ snippet?: { title?: string; publishedAt?: string; resourceId?: { videoId?: string } } }>;
-  };
-  const entries = (playlistData.items ?? []).flatMap((item) => {
-    const id = item.snippet?.resourceId?.videoId;
-    if (!id) return [];
-    return [{
-      id,
-      title: item.snippet?.title ?? "ShuzhFit video",
-      thumbnail: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
-      publishedAt: item.snippet?.publishedAt ?? new Date(0).toISOString(),
-      durationSeconds: 0,
-      isShort: false,
-      url: `https://www.youtube.com/watch?v=${id}`,
-    }];
-  });
-  if (!entries.length) return entries;
+  const videos: Video[] = [];
+  let pageToken: string | undefined;
+  const maxPages = 3;
 
-  const detailsResponse = await fetch(
-    `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${encodeURIComponent(entries.map((video) => video.id).join(","))}&key=${encodeURIComponent(apiKey)}`,
-    { signal: AbortSignal.timeout(6000) },
-  );
-  if (!detailsResponse.ok) throw new Error("YouTube video details request failed");
-  const details = await detailsResponse.json() as {
-    items?: Array<{ id: string; contentDetails?: { duration?: string } }>;
-  };
-  const durations = new Map((details.items ?? []).map((item) => [
-    item.id,
-    durationSeconds(item.contentDetails?.duration ?? ""),
-  ]));
-  return entries.map((video) => {
-    const duration = durations.get(video.id) ?? 0;
-    return { ...video, durationSeconds: duration, isShort: isShortDuration(duration) };
-  });
+  for (let page = 0; page < maxPages; page += 1) {
+    const pageTokenParam = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : "";
+    const playlistResponse = await fetch(
+      `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${encodeURIComponent(uploads)}&key=${encodeURIComponent(apiKey)}${pageTokenParam}`,
+      { signal: AbortSignal.timeout(6000) },
+    );
+    if (!playlistResponse.ok) throw new Error("YouTube playlist request failed");
+    const playlistData = await playlistResponse.json() as {
+      items?: Array<{ snippet?: { title?: string; publishedAt?: string; resourceId?: { videoId?: string } } }>;
+      nextPageToken?: string;
+    };
+    const entries = (playlistData.items ?? []).flatMap((item) => {
+      const id = item.snippet?.resourceId?.videoId;
+      if (!id) return [];
+      return [{
+        id,
+        title: item.snippet?.title ?? "ShuzhFit video",
+        thumbnail: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
+        publishedAt: item.snippet?.publishedAt ?? new Date(0).toISOString(),
+        durationSeconds: 0,
+        isShort: false,
+        url: `https://www.youtube.com/watch?v=${id}`,
+      }];
+    });
+    if (!entries.length) break;
+
+    const detailsResponse = await fetch(
+      `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${encodeURIComponent(entries.map((video) => video.id).join(","))}&key=${encodeURIComponent(apiKey)}`,
+      { signal: AbortSignal.timeout(6000) },
+    );
+    if (!detailsResponse.ok) throw new Error("YouTube video details request failed");
+    const details = await detailsResponse.json() as {
+      items?: Array<{ id: string; contentDetails?: { duration?: string } }>;
+    };
+    const durations = new Map((details.items ?? []).map((item) => [
+      item.id,
+      durationSeconds(item.contentDetails?.duration ?? ""),
+    ]));
+    videos.push(...entries.map((video) => {
+      const duration = durations.get(video.id) ?? 0;
+      return { ...video, durationSeconds: duration, isShort: isShortDuration(duration) };
+    }));
+
+    pageToken = playlistData.nextPageToken;
+    if (!pageToken || excludeShorts(videos, limit).length >= limit) break;
+  }
+
+  return videos;
 }
 
 export async function loadFromRss(channelId: string): Promise<Video[]> {
@@ -102,12 +115,19 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
   }
   res.setHeader("Cache-Control", "s-maxage=3600, stale-while-revalidate=86400");
   const env = getYouTubeEnv();
+  const rawLimit = req.query?.limit;
+  const limitValue = Array.isArray(rawLimit) ? rawLimit[0] : rawLimit;
+  const parsedLimit = Number(limitValue);
+  const limit = Number.isInteger(parsedLimit) && parsedLimit >= 1 && parsedLimit <= 5
+    ? parsedLimit
+    : 5;
 
   if (env.apiKey && env.channelId) {
     try {
-      const videos = await loadFromApi(env.apiKey, env.channelId);
-      if (videos.length) {
-        res.status(200).json({ source: "api", videos: excludeShorts(videos) });
+      const videos = await loadFromApi(env.apiKey, env.channelId, limit);
+      const regularVideos = excludeShorts(videos, limit);
+      if (regularVideos.length) {
+        res.status(200).json({ source: "api", videos: regularVideos });
         return;
       }
     } catch (error) {
@@ -118,8 +138,9 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
   if (env.channelId) {
     try {
       const videos = await loadFromRss(env.channelId);
-      if (videos.length) {
-        res.status(200).json({ source: "rss", videos: excludeShorts(videos) });
+      const regularVideos = excludeShorts(videos, limit);
+      if (regularVideos.length) {
+        res.status(200).json({ source: "rss", videos: regularVideos });
         return;
       }
     } catch (error) {
@@ -127,5 +148,5 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
     }
   }
 
-  res.status(200).json({ source: "static", videos: excludeShorts(fallbackVideos) });
+  res.status(200).json({ source: "static", videos: excludeShorts(fallbackVideos, limit) });
 }

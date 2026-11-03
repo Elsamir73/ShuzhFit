@@ -36,7 +36,7 @@ export function HomePage() {
 
   useEffect(() => {
     let active = true;
-    void loadVideos().then((items) => {
+    void loadVideos(3).then((items) => {
       if (active) {
         setVideos(items.slice(0, 3));
         setVideosLoading(false);

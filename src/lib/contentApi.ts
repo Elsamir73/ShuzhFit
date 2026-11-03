@@ -48,15 +48,15 @@ export async function loadBlogPost(slug: string): Promise<BlogPost | null> {
   return await response.json() as BlogPost;
 }
 
-export async function loadVideos(): Promise<Video[]> {
+export async function loadVideos(limit = 5): Promise<Video[]> {
   try {
-    const response = await fetch("/api/youtube/videos");
+    const response = await fetch(`/api/youtube/videos?limit=${limit}`);
     if (!response.ok) {
       return [];
     }
 
     const data = (await response.json()) as { videos?: Array<{ id: string; title: string; thumbnail: string; publishedAt: string; durationSeconds: number; isShort: boolean; url: string }> };
-    return (data.videos ?? []).sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt)).map((video) => ({ slug: video.id, title: video.title, description: `${video.isShort ? "Short · " : ""}${Math.floor(video.durationSeconds/60)} min`, youtubeUrl: video.url, thumbnail: video.thumbnail, durationSeconds: video.durationSeconds, publishedAt: video.publishedAt, isShort: video.isShort }));
+    return (data.videos ?? []).sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt)).map((video) => ({ slug: video.id, title: video.title, description: `${video.isShort ? "Short · " : ""}${Math.floor(video.durationSeconds/60)} min`, youtubeUrl: video.url, thumbnail: video.thumbnail, durationSeconds: video.durationSeconds, publishedAt: video.publishedAt, isShort: video.isShort })).filter((video) => !video.isShort).slice(0, limit);
   } catch {
     return [];
   }
