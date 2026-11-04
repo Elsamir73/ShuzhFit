@@ -158,6 +158,16 @@ const AdminVideosPage = lazy(() =>
     default: module.AdminVideosPage,
   })),
 );
+const AdminFollowupsPage = lazy(() =>
+  import("./pages/AdminFollowupsPage").then((module) => ({
+    default: module.AdminFollowupsPage,
+  })),
+);
+const UnsubscribePage = lazy(() =>
+  import("./pages/UnsubscribePage").then((module) => ({
+    default: module.UnsubscribePage,
+  })),
+);
 const AdminMessagesPage = lazy(() =>
   import("./pages/AdminMessagesPage").then((module) => ({
     default: module.AdminMessagesPage,
@@ -352,6 +362,14 @@ function App() {
               </Layout>
             }
           />
+          <Route
+            path="/unsubscribe"
+            element={
+              <Layout>
+                <UnsubscribePage />
+              </Layout>
+            }
+          />
           <Route path="/logout" element={<LogoutPage />} />
           <Route
             path="/onboarding"
@@ -507,6 +525,16 @@ function App() {
               <AdminRoute>
                 <Layout>
                   <AdminVideosPage />
+                </Layout>
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/followups"
+            element={
+              <AdminRoute>
+                <Layout>
+                  <AdminFollowupsPage />
                 </Layout>
               </AdminRoute>
             }

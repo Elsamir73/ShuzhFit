@@ -36,6 +36,9 @@ describe("API router", () => {
     ["POST", "/api/auth/register/", "POST /auth/register"],
     ["GET", "/api/auth/me?x=1", "GET /auth/me"],
     ["GET", "/api/workouts/12", "GET /workouts/:id"],
+    ["GET", "/api/admin/followups/segments", "GET /admin/followups/segments"],
+    ["POST", "/api/admin/followups/send", "POST /admin/followups/send"],
+    ["GET", "/api/unsubscribe?token=example", "GET /unsubscribe"],
   ])("routes %s %s to %s", (method, url, routeKey) => {
     const request = createRequest(method, url);
     const routeUrl = new URL(originalApiUrl(request), "http://localhost");

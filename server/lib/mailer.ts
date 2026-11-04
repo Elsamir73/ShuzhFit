@@ -5,6 +5,7 @@ export type MailMessage = {
   subject: string;
   html: string;
   text: string;
+  headers?: Record<string, string>;
 };
 
 const requiredSmtpVariables = [
@@ -14,6 +15,13 @@ const requiredSmtpVariables = [
   "SMTP_PASS",
   "EMAIL_FROM",
 ] as const;
+
+export function isMailerConfigured(): boolean {
+  return requiredSmtpVariables.every((name) => Boolean(process.env[name]?.trim())) &&
+    Number.isInteger(Number(process.env.SMTP_PORT)) &&
+    Number(process.env.SMTP_PORT) > 0 &&
+    Number(process.env.SMTP_PORT) <= 65535;
+}
 
 export async function sendMail(message: MailMessage): Promise<boolean> {
   const missing = requiredSmtpVariables.filter((name) => !process.env[name]?.trim());

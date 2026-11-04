@@ -8,6 +8,7 @@ const links = [
   { path: "/admin/blogs", label: "Blog", icon: "▤" },
   { path: "/admin/exercises", label: "Exercises", icon: "◉" },
   { path: "/admin/videos", label: "Videos", icon: "▷" },
+  { path: "/admin/followups", label: "Follow-ups", icon: "✉" },
   { path: "/admin/media", label: "Media", icon: "▧" },
   { path: "/admin/comments", label: "Comments", icon: "☷" },
   { path: "/admin/messages", label: "Messages", icon: "✉" },

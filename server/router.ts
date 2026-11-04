@@ -8,6 +8,7 @@ import adminVideos from "./routes/admin/videos.js";
 import adminOverview from "./routes/admin/overview.js";
 import adminMembers from "./routes/admin/members.js";
 import adminMedia from "./routes/admin/media.js";
+import { getSegments as adminFollowupSegments, history as adminFollowupHistory, preview as adminFollowupPreview, sendCampaignBatch as adminFollowupSend, testMessage as adminFollowupTest, unsubscribe as followupUnsubscribe } from "./routes/admin/followups.js";
 import authLogin from "./routes/auth/login.js";
 import authLogout from "./routes/auth/logout.js";
 import authMe from "./routes/auth/me.js";
@@ -53,6 +54,13 @@ export const routeTable = new Map<string, ApiHandler>([
   ["POST /admin/media", adminMedia],
   ["PATCH /admin/media", adminMedia],
   ["DELETE /admin/media", adminMedia],
+  ["GET /admin/followups/segments", adminFollowupSegments],
+  ["POST /admin/followups/preview", adminFollowupPreview],
+  ["POST /admin/followups/test", adminFollowupTest],
+  ["POST /admin/followups/send", adminFollowupSend],
+  ["GET /admin/followups/history", adminFollowupHistory],
+  ["GET /unsubscribe", followupUnsubscribe],
+  ["POST /unsubscribe", followupUnsubscribe],
   ["POST /admin/blogs", adminBlogs],
   ["GET /admin/comments", adminComments],
   ["DELETE /admin/comments", adminComments],
