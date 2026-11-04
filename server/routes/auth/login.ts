@@ -37,7 +37,16 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
       return;
     }
 
-    const [userRow] = await db.select().from(schema.users).where(eq(schema.users.email, email)).limit(1);
+    const [userRow] = await db.select({
+      id: schema.users.id,
+      email: schema.users.email,
+      passwordHash: schema.users.passwordHash,
+      name: schema.users.name,
+      role: schema.users.role,
+      onboardedAt: schema.users.onboardedAt,
+      emailVerifiedAt: schema.users.emailVerifiedAt,
+      welcomeSentAt: schema.users.welcomeSentAt,
+    }).from(schema.users).where(eq(schema.users.email, email)).limit(1);
     const valid = userRow ? await verifyPassword(input.password, userRow.passwordHash) : false;
     if (!valid || !userRow) {
       if (attempt) {
