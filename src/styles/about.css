@@ -16,9 +16,10 @@
 
 .about-hero-photo {
   width: 100%;
+  max-height: 560px;
   aspect-ratio: 4 / 3;
   object-fit: cover;
-  object-position: 55% 22%;
+  object-position: center top;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
 }
@@ -156,6 +157,13 @@
 
   .about-benefit-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 639px) {
+  .about-hero-photo {
+    height: min(420px, 125vw);
+    max-height: 420px;
   }
 }
 

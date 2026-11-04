@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { excludeShorts } from "../../shared/videos";
 import "../styles/videos.css";
 
 type Video = {
@@ -174,9 +173,10 @@ export function VideosPage() {
           : isRecord(data) && Array.isArray(data.videos)
             ? data.videos
             : [];
-        const items = excludeShorts(
-          list.map(toVideo).filter((video): video is Video => video !== null),
-        ).slice(0, MAX_VIDEOS);
+        const items = list
+          .map(toVideo)
+          .filter((video): video is Video => video !== null)
+          .slice(0, MAX_VIDEOS);
         setVideos(items);
         setStatus("ready");
       })

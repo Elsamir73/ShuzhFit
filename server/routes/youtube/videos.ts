@@ -1,5 +1,11 @@
 import { fallbackVideos } from "../../../shared/fallbackVideos.js";
-import { excludeShorts, isShortDuration, looksLikeShortsUrl } from "../../../shared/videos.js";
+import {
+  excludeShorts,
+  isShortDuration,
+  looksLikeShortsUrl,
+  parseYouTubeDuration,
+  selectVideosWithShortFallback,
+} from "../../../shared/videos.js";
 import { getYouTubeEnv } from "../../lib/env.js";
 import type { ApiRequest, ApiResponse } from "../../lib/http.js";
 import { sendError } from "../../lib/http.js";
@@ -49,17 +55,21 @@ function cacheSuccessfulResult(
   if (videos.length) successfulResults.set(channelId, { videos, cachedAt: Date.now() });
 }
 
-function durationSeconds(value: string): number {
-  const parts = value.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-  return parts ? Number(parts[1] ?? 0) * 3600 + Number(parts[2] ?? 0) * 60 + Number(parts[3] ?? 0) : 0;
-}
-
 function decodeXml(value: string): string {
   return value.replace(/&amp;/g, "&").replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
 }
 
-export async function loadFromApi(apiKey: string, channelId: string, limit = 5): Promise<Video[]> {
+type ApiVideoResult = {
+  videos: Video[];
+  parsedDurationCount: number;
+};
+
+export async function loadFromApi(
+  apiKey: string,
+  channelId: string,
+  limit = 5,
+): Promise<ApiVideoResult> {
   const channelResponse = await fetchYouTubeApi(
     `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${encodeURIComponent(channelId)}&key=${encodeURIComponent(apiKey)}`,
     "YouTube channels API",
@@ -72,6 +82,7 @@ export async function loadFromApi(apiKey: string, channelId: string, limit = 5):
   if (!uploads) throw new Error("YouTube uploads playlist was unavailable");
 
   const videos: Video[] = [];
+  let parsedDurationCount = 0;
   let pageToken: string | undefined;
   const maxPages = 3;
 
@@ -111,18 +122,26 @@ export async function loadFromApi(apiKey: string, channelId: string, limit = 5):
     };
     const durations = new Map((details.items ?? []).map((item) => [
       item.id,
-      durationSeconds(item.contentDetails?.duration ?? ""),
+      parseYouTubeDuration(item.contentDetails?.duration),
     ]));
+    parsedDurationCount += entries.filter(
+      (video) => durations.get(video.id) !== undefined,
+    ).length;
     videos.push(...entries.map((video) => {
       const duration = durations.get(video.id) ?? 0;
-      return { ...video, durationSeconds: duration, isShort: isShortDuration(duration) };
+      const parsedDuration = durations.get(video.id);
+      return {
+        ...video,
+        durationSeconds: duration,
+        isShort: isShortDuration(parsedDuration),
+      };
     }));
 
     pageToken = playlistData.nextPageToken;
     if (!pageToken || excludeShorts(videos, limit).length >= limit) break;
   }
 
-  return videos;
+  return { videos, parsedDurationCount };
 }
 
 export async function loadFromRss(channelId: string): Promise<Video[]> {
@@ -172,11 +191,22 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
     console.warn("YouTube Data API skipped: channel ID missing (channel ID: not configured)");
   } else {
     try {
-      const videos = await loadFromApi(env.apiKey, channelId, limit);
-      const regularVideos = excludeShorts(videos, limit);
-      if (regularVideos.length) {
-        cacheSuccessfulResult(channelId, regularVideos);
-        res.status(200).json({ source: "api", videos: regularVideos });
+      const { videos, parsedDurationCount } = await loadFromApi(
+        env.apiKey,
+        channelId,
+        limit,
+      );
+      const regularVideos = excludeShorts(videos);
+      const displayVideos = selectVideosWithShortFallback(videos, limit);
+      console.info("YouTube Data API video counts", {
+        videosFetched: videos.length,
+        videosWithParsedDuration: parsedDurationCount,
+        videosRemovedAsShorts: videos.length - regularVideos.length,
+        videosRemaining: displayVideos.length,
+      });
+      if (displayVideos.length) {
+        cacheSuccessfulResult(channelId, displayVideos);
+        res.status(200).json({ source: "api", videos: displayVideos });
         return;
       }
       console.warn(`YouTube Data API returned no eligible videos (channel ID: ${channelId})`);
@@ -188,10 +218,17 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
   if (channelId) {
     try {
       const videos = await loadFromRss(channelId);
-      const regularVideos = excludeShorts(videos, limit);
-      if (regularVideos.length) {
-        cacheSuccessfulResult(channelId, regularVideos);
-        res.status(200).json({ source: "rss", videos: regularVideos });
+      const regularVideos = excludeShorts(videos);
+      const displayVideos = selectVideosWithShortFallback(videos, limit);
+      console.info("YouTube RSS video counts", {
+        videosFetched: videos.length,
+        videosWithParsedDuration: 0,
+        videosRemovedAsShorts: videos.length - regularVideos.length,
+        videosRemaining: displayVideos.length,
+      });
+      if (displayVideos.length) {
+        cacheSuccessfulResult(channelId, displayVideos);
+        res.status(200).json({ source: "rss", videos: displayVideos });
         return;
       }
       console.warn(`YouTube RSS feed returned no eligible videos (channel ID: ${channelId})`);
@@ -204,7 +241,10 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
 
   const cachedResult = channelId ? successfulResults.get(channelId) : undefined;
   if (cachedResult && Date.now() - cachedResult.cachedAt <= cacheDurationMs) {
-    res.status(200).json({ source: "cache", videos: excludeShorts(cachedResult.videos, limit) });
+    res.status(200).json({
+      source: "cache",
+      videos: selectVideosWithShortFallback(cachedResult.videos, limit),
+    });
     return;
   }
 

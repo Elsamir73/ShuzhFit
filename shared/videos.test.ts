@@ -1,13 +1,32 @@
 import { describe, expect, it } from "vitest";
-import { excludeShorts, isShortDuration, looksLikeShortsUrl } from "./videos.js";
+import {
+  excludeShorts,
+  isShortDuration,
+  looksLikeShortsUrl,
+  parseYouTubeDuration,
+  selectVideosWithShortFallback,
+} from "./videos.js";
 
 describe("shorts filtering", () => {
   it("flags known durations of 60 seconds or less as Shorts", () => {
-    expect(isShortDuration(0)).toBe(false); // unknown duration is not proof of a Short
+    expect(isShortDuration(undefined)).toBe(false);
+    expect(isShortDuration(Number.NaN)).toBe(false);
+    expect(isShortDuration(0)).toBe(true);
     expect(isShortDuration(45)).toBe(true);
     expect(isShortDuration(60)).toBe(true);
     expect(isShortDuration(61)).toBe(false);
-    expect(isShortDuration(Number.NaN)).toBe(false);
+  });
+
+  it("parses YouTube ISO 8601 durations and leaves unknown values unparsed", () => {
+    expect(parseYouTubeDuration("PT8M12S")).toBe(492);
+    expect(parseYouTubeDuration("PT1H2M3S")).toBe(3723);
+    expect(parseYouTubeDuration("PT45S")).toBe(45);
+    expect(parseYouTubeDuration("P0D")).toBe(0);
+    expect(isShortDuration(parseYouTubeDuration("P0D"))).toBe(true);
+    expect(parseYouTubeDuration("")).toBeUndefined();
+    expect(parseYouTubeDuration(undefined)).toBeUndefined();
+    expect(parseYouTubeDuration("PT")).toBeUndefined();
+    expect(parseYouTubeDuration("not a duration")).toBeUndefined();
   });
 
   it("detects Shorts by their /shorts/ link", () => {
@@ -19,7 +38,7 @@ describe("shorts filtering", () => {
 
   it("removes Shorts while keeping normal uploads in order", () => {
     const videos = [
-      { id: "unknown", durationSeconds: 0, isShort: isShortDuration(0) },
+      { id: "unknown", durationSeconds: 0, isShort: isShortDuration(undefined) },
       { id: "short", durationSeconds: 45, isShort: isShortDuration(45) },
       { id: "long", durationSeconds: 600, isShort: isShortDuration(600) },
     ];
@@ -40,5 +59,38 @@ describe("shorts filtering", () => {
       "regular-1",
       "regular-2",
     ]);
+  });
+
+  it("fills sparse regular results with the newest Shorts up to the limit", () => {
+    const videos = [
+      { id: "short-old", isShort: true, publishedAt: "2025-01-01" },
+      { id: "regular-old", isShort: false, publishedAt: "2025-02-01" },
+      { id: "short-new", isShort: true, publishedAt: "2025-04-01" },
+      { id: "regular-new", isShort: false, publishedAt: "2025-03-01" },
+    ];
+
+    expect(
+      selectVideosWithShortFallback(videos, 3).map((video) => [
+        video.id,
+        video.isShort,
+      ]),
+    ).toEqual([
+      ["short-new", true],
+      ["regular-new", false],
+      ["regular-old", false],
+    ]);
+  });
+
+  it("keeps Shorts excluded when at least three regular videos are available", () => {
+    const videos = [
+      { id: "short", isShort: true, publishedAt: "2025-05-01" },
+      { id: "regular-1", isShort: false, publishedAt: "2025-04-01" },
+      { id: "regular-2", isShort: false, publishedAt: "2025-03-01" },
+      { id: "regular-3", isShort: false, publishedAt: "2025-02-01" },
+    ];
+
+    expect(
+      selectVideosWithShortFallback(videos, 5).map((video) => video.id),
+    ).toEqual(["regular-1", "regular-2", "regular-3"]);
   });
 });
