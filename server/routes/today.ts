@@ -60,7 +60,15 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
       return;
     }
 
-    const [userProfile] = await db.select().from(schema.users).where(eq(schema.users.id, userId)).limit(1);
+    const [userProfile] = await db.select({
+      goalType: schema.users.goalType,
+      ageYears: schema.users.ageYears,
+      sex: schema.users.sex,
+      heightCm: schema.users.heightCm,
+      targetWeightKg: schema.users.targetWeightKg,
+      activityLevel: schema.users.activityLevel,
+      weeklyWorkoutTarget: schema.users.weeklyWorkoutTarget,
+    }).from(schema.users).where(eq(schema.users.id, userId)).limit(1);
     if (!userProfile) {
       sendError(res, 401, "UNAUTHORIZED", "Please sign in to continue.");
       return;
@@ -171,7 +179,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
       activeGoals,
       insights,
     });
-  } catch {
+  } catch (error) {
+    console.error("TODAY_FAILED", error);
     sendError(res, 500, "TODAY_FAILED", "Unable to load today's plan and progress.");
   }
 }
