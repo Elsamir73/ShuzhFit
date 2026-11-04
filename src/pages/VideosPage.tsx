@@ -124,7 +124,9 @@ function VideoModal({ video, onClose }: { video: Video; onClose: () => void }) {
             <path d="M6 6l12 12M18 6L6 18" />
           </svg>
         </button>
-        <div className="vp-modal-frame">
+        <div
+          className={`vp-modal-frame${video.isShort ? " vp-modal-frame--short" : ""}`}
+        >
           <iframe
             src={`https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&playsinline=1`}
             title={video.title}

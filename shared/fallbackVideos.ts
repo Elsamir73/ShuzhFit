@@ -1,2 +1,58 @@
-// Intentionally empty until the channel's public feed can provide verified uploads.
-export const fallbackVideos: Array<{ id: string; title: string; thumbnail: string; publishedAt: string; durationSeconds: number; isShort: boolean; url: string }> = [];
+import type { YouTubeVideo } from "./videos.js";
+
+export const fallbackVideos: YouTubeVideo[] = [
+  {
+    id: "9ZBExUAhJ8s",
+    title: "Smith Machine Shoulder Press 💪",
+    thumbnail: "https://i.ytimg.com/vi/9ZBExUAhJ8s/hqdefault.jpg",
+    publishedAt: "2026-10-10T00:00:00.000Z",
+    durationSeconds: 21,
+    isShort: true,
+    url: "https://www.youtube.com/watch?v=9ZBExUAhJ8s",
+  },
+  {
+    id: "qg0pFAtkxRQ",
+    title: "Deadlift Progression: 0kg → 60kg → 100kg PR 💪 | ShuzhFit",
+    thumbnail: "https://i.ytimg.com/vi/qg0pFAtkxRQ/hqdefault.jpg",
+    publishedAt: "2026-10-09T00:00:00.000Z",
+    durationSeconds: 33,
+    isShort: true,
+    url: "https://www.youtube.com/watch?v=qg0pFAtkxRQ",
+  },
+  {
+    id: "B-N_VgH-CPc",
+    title: "Chest Day 💪 | ShuzhFit",
+    thumbnail: "https://i.ytimg.com/vi/B-N_VgH-CPc/hqdefault.jpg",
+    publishedAt: "2026-10-08T00:00:00.000Z",
+    durationSeconds: 57,
+    isShort: true,
+    url: "https://www.youtube.com/watch?v=B-N_VgH-CPc",
+  },
+  {
+    id: "DsrLxEOY314",
+    title: "Back Day 💪",
+    thumbnail: "https://i.ytimg.com/vi/DsrLxEOY314/hqdefault.jpg",
+    publishedAt: "2026-09-05T00:00:00.000Z",
+    durationSeconds: 31,
+    isShort: true,
+    url: "https://www.youtube.com/watch?v=DsrLxEOY314",
+  },
+  {
+    id: "i_wvXxtAgSA",
+    title: "Chest Day",
+    thumbnail: "https://i.ytimg.com/vi/i_wvXxtAgSA/hqdefault.jpg",
+    publishedAt: "2026-09-04T00:00:00.000Z",
+    durationSeconds: 59,
+    isShort: true,
+    url: "https://www.youtube.com/watch?v=i_wvXxtAgSA",
+  },
+  {
+    id: "OvODE9nBZ1o",
+    title: "First video on YouTube. maybe a new beginning.",
+    thumbnail: "https://i.ytimg.com/vi/OvODE9nBZ1o/hqdefault.jpg",
+    publishedAt: "2026-09-03T00:00:00.000Z",
+    durationSeconds: 18,
+    isShort: true,
+    url: "https://www.youtube.com/watch?v=OvODE9nBZ1o",
+  },
+];

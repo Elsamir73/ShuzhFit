@@ -1030,6 +1030,16 @@ a {
   gap: 24px;
 }
 
+.youtube-feed-warning {
+  margin: 0 0 20px;
+  padding: 12px 16px;
+  border: 1px solid rgba(255, 208, 77, 0.45);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 208, 77, 0.12);
+  color: #ffe08a;
+  font-size: 0.9rem;
+}
+
 .admin-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(250px, 0.8fr);

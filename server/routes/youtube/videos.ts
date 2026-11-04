@@ -1,21 +1,20 @@
+import { eq } from "drizzle-orm";
 import { fallbackVideos } from "../../../shared/fallbackVideos.js";
 import {
   excludeShorts,
   isShortDuration,
   looksLikeShortsUrl,
   parseYouTubeDuration,
-  selectVideosWithShortFallback,
+  resolveVideoFeed,
+  type YouTubeFeedCacheValue,
+  type YouTubeVideo,
 } from "../../../shared/videos.js";
 import { getYouTubeEnv } from "../../lib/env.js";
 import type { ApiRequest, ApiResponse } from "../../lib/http.js";
 import { sendError } from "../../lib/http.js";
 
-type Video = (typeof fallbackVideos)[number];
-const successfulResults = new Map<string, {
-  videos: Video[];
-  cachedAt: number;
-}>();
-const cacheDurationMs = 30 * 60 * 1000;
+type Video = YouTubeVideo;
+const youtubeCacheKey = "youtube_videos";
 
 function apiErrorReason(body: unknown): string {
   if (typeof body !== "object" || body === null || !("error" in body)) return "unknown";
@@ -48,11 +47,77 @@ async function fetchYouTubeApi(url: string, operation: string, channelId: string
   return response;
 }
 
-function cacheSuccessfulResult(
-  channelId: string,
+async function saveVideosToCache(
+  source: "api" | "rss",
   videos: Video[],
-): void {
-  if (videos.length) successfulResults.set(channelId, { videos, cachedAt: Date.now() });
+): Promise<string> {
+  const updatedAt = new Date();
+  try {
+    const [{ db }, schema] = await Promise.all([
+      import("../../../db/index.js"),
+      import("../../../db/schema.js"),
+    ]);
+    const value: YouTubeFeedCacheValue = { source, videos };
+    await db
+      .insert(schema.contentCache)
+      .values({ key: youtubeCacheKey, value, updatedAt })
+      .onConflictDoUpdate({
+        target: schema.contentCache.key,
+        set: { value, updatedAt },
+      });
+  } catch (error) {
+    console.error(
+      "YouTube video cache upsert failed:",
+      error instanceof Error ? error.message : String(error),
+    );
+  }
+  return updatedAt.toISOString();
+}
+
+async function readVideosFromCache(): Promise<{
+  videos: Video[];
+  updatedAt: string;
+} | null> {
+  try {
+    const [{ db }, schema] = await Promise.all([
+      import("../../../db/index.js"),
+      import("../../../db/schema.js"),
+    ]);
+    const [cached] = await db
+      .select({
+        value: schema.contentCache.value,
+        updatedAt: schema.contentCache.updatedAt,
+      })
+      .from(schema.contentCache)
+      .where(eq(schema.contentCache.key, youtubeCacheKey))
+      .limit(1);
+    if (!cached || !Array.isArray(cached.value.videos) || !cached.value.videos.length) {
+      return null;
+    }
+    if (cached.value.source !== "cache") {
+      try {
+        await db
+          .update(schema.contentCache)
+          .set({ value: { ...cached.value, source: "cache" } })
+          .where(eq(schema.contentCache.key, youtubeCacheKey));
+      } catch (error) {
+        console.error(
+          "YouTube video cache status update failed:",
+          error instanceof Error ? error.message : String(error),
+        );
+      }
+    }
+    return {
+      videos: cached.value.videos,
+      updatedAt: cached.updatedAt.toISOString(),
+    };
+  } catch (error) {
+    console.error(
+      "YouTube video cache read failed:",
+      error instanceof Error ? error.message : String(error),
+    );
+    return null;
+  }
 }
 
 function decodeXml(value: string): string {
@@ -175,7 +240,10 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
     sendError(res, 405, "METHOD_NOT_ALLOWED", "Method not allowed.");
     return;
   }
-  res.setHeader("Cache-Control", "s-maxage=3600, stale-while-revalidate=86400");
+  res.setHeader(
+    "Cache-Control",
+    "public, s-maxage=3600, stale-while-revalidate=86400, stale-if-error=86400",
+  );
   const env = getYouTubeEnv();
   const rawLimit = req.query?.limit;
   const limitValue = Array.isArray(rawLimit) ? rawLimit[0] : rawLimit;
@@ -197,19 +265,23 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
         limit,
       );
       const regularVideos = excludeShorts(videos);
-      const displayVideos = selectVideosWithShortFallback(videos, limit);
+      const resolved = resolveVideoFeed(videos, [], [], [], limit);
       console.info("YouTube Data API video counts", {
         videosFetched: videos.length,
         videosWithParsedDuration: parsedDurationCount,
         videosRemovedAsShorts: videos.length - regularVideos.length,
-        videosRemaining: displayVideos.length,
+        videosRemaining: resolved.videos.length,
       });
-      if (displayVideos.length) {
-        cacheSuccessfulResult(channelId, displayVideos);
-        res.status(200).json({ source: "api", videos: displayVideos });
+      if (videos.length) {
+        const lastGoodAt = await saveVideosToCache("api", resolved.videos);
+        res.status(200).json({
+          source: resolved.source,
+          videos: resolved.videos,
+          lastGoodAt,
+        });
         return;
       }
-      console.warn(`YouTube Data API returned no eligible videos (channel ID: ${channelId})`);
+      console.warn(`YouTube Data API returned no videos (channel ID: ${channelId})`);
     } catch (error) {
       console.error(`YouTube Data API failed (channel ID: ${channelId}):`, error instanceof Error ? error.message : String(error));
     }
@@ -219,19 +291,23 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
     try {
       const videos = await loadFromRss(channelId);
       const regularVideos = excludeShorts(videos);
-      const displayVideos = selectVideosWithShortFallback(videos, limit);
+      const resolved = resolveVideoFeed([], videos, [], [], limit);
       console.info("YouTube RSS video counts", {
         videosFetched: videos.length,
         videosWithParsedDuration: 0,
         videosRemovedAsShorts: videos.length - regularVideos.length,
-        videosRemaining: displayVideos.length,
+        videosRemaining: resolved.videos.length,
       });
-      if (displayVideos.length) {
-        cacheSuccessfulResult(channelId, displayVideos);
-        res.status(200).json({ source: "rss", videos: displayVideos });
+      if (videos.length) {
+        const lastGoodAt = await saveVideosToCache("rss", resolved.videos);
+        res.status(200).json({
+          source: resolved.source,
+          videos: resolved.videos,
+          lastGoodAt,
+        });
         return;
       }
-      console.warn(`YouTube RSS feed returned no eligible videos (channel ID: ${channelId})`);
+      console.warn(`YouTube RSS feed returned no videos (channel ID: ${channelId})`);
     } catch (error) {
       console.error(`YouTube RSS feed failed (channel ID: ${channelId}):`, error instanceof Error ? error.message : String(error));
     }
@@ -239,19 +315,19 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
     console.warn("YouTube RSS feed skipped: channel ID missing");
   }
 
-  const cachedResult = channelId ? successfulResults.get(channelId) : undefined;
-  if (cachedResult && Date.now() - cachedResult.cachedAt <= cacheDurationMs) {
-    res.status(200).json({
-      source: "cache",
-      videos: selectVideosWithShortFallback(cachedResult.videos, limit),
-    });
-    return;
-  }
-
-  const staticVideos = excludeShorts(fallbackVideos, limit);
-  if (staticVideos.length) {
-    res.status(200).json({ source: "static", videos: staticVideos });
-    return;
-  }
-  res.status(200).json({ source: "static", videos: [] });
+  const cachedResult = await readVideosFromCache();
+  const resolved = resolveVideoFeed(
+    [],
+    [],
+    cachedResult?.videos ?? [],
+    fallbackVideos,
+    limit,
+  );
+  res.status(200).json({
+    source: resolved.source,
+    videos: resolved.videos,
+    ...(resolved.source === "cache" && cachedResult
+      ? { updatedAt: cachedResult.updatedAt }
+      : {}),
+  });
 }

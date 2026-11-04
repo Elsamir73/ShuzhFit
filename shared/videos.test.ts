@@ -4,6 +4,7 @@ import {
   isShortDuration,
   looksLikeShortsUrl,
   parseYouTubeDuration,
+  resolveVideoFeed,
   selectVideosWithShortFallback,
 } from "./videos.js";
 
@@ -92,5 +93,21 @@ describe("shorts filtering", () => {
     expect(
       selectVideosWithShortFallback(videos, 5).map((video) => video.id),
     ).toEqual(["regular-1", "regular-2", "regular-3"]);
+  });
+
+  it("resolves the feed in api, cache, then static order", () => {
+    const apiVideo = { id: "api", isShort: false, publishedAt: "2025-03-01" };
+    const cachedVideo = { id: "cache", isShort: false, publishedAt: "2025-02-01" };
+    const staticVideo = { id: "static", isShort: false, publishedAt: "2025-01-01" };
+
+    expect(
+      resolveVideoFeed([apiVideo], [], [cachedVideo], [staticVideo], 5),
+    ).toEqual({ source: "api", videos: [apiVideo] });
+    expect(
+      resolveVideoFeed([], [], [cachedVideo], [staticVideo], 5),
+    ).toEqual({ source: "cache", videos: [cachedVideo] });
+    expect(
+      resolveVideoFeed([], [], [], [staticVideo], 5),
+    ).toEqual({ source: "static", videos: [staticVideo] });
   });
 });

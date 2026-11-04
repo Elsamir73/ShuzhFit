@@ -7,7 +7,44 @@ type Overview = { totalMembers: number; newThisWeek: number; newThisMonth: numbe
 export function AdminPage() {
   const [overview, setOverview] = useState<Overview | null>(null);
   const [error, setError] = useState("");
-  useEffect(() => { void fetch("/api/admin/overview", { credentials: "same-origin" }).then(async (response) => { const body = await response.json() as Overview & { error?: string | { message?: string } }; if (!response.ok) throw new Error(typeof body.error === "string" ? body.error : "Unable to load overview."); setOverview(body); }).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Unable to load overview.")); }, []);
+  const [youtubeSource, setYoutubeSource] = useState<string | null>(null);
+  useEffect(() => {
+    void fetch("/api/admin/overview", { credentials: "same-origin" })
+      .then(async (response) => {
+        const body = (await response.json()) as Overview & {
+          error?: string | { message?: string };
+        };
+        if (!response.ok) {
+          throw new Error(
+            typeof body.error === "string"
+              ? body.error
+              : "Unable to load overview.",
+          );
+        }
+        setOverview(body);
+      })
+      .catch((reason: unknown) =>
+        setError(
+          reason instanceof Error ? reason.message : "Unable to load overview.",
+        ),
+      );
+    void fetch("/api/health", { credentials: "same-origin" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Unable to load YouTube feed status.");
+        const body = (await response.json()) as {
+          youtube?: { source?: unknown };
+        };
+        setYoutubeSource(
+          typeof body.youtube?.source === "string"
+            ? body.youtube.source
+            : "unknown",
+        );
+      })
+      .catch((reason: unknown) => {
+        console.error("Unable to load YouTube feed status:", reason);
+        setYoutubeSource("unknown");
+      });
+  }, []);
   return (
     <>
       <Helmet>
@@ -29,6 +66,12 @@ export function AdminPage() {
             </p>
           </div>
 
+          {youtubeSource !== null && youtubeSource !== "api" ? (
+            <p className="youtube-feed-warning" role="status">
+              YouTube feed is using cached/backup videos. Check YOUTUBE_API_KEY
+              and YOUTUBE_CHANNEL_ID in Vercel.
+            </p>
+          ) : null}
           {error ? <p role="alert">{error}</p> : null}
           {!overview && !error ? <p role="status">Loading overview…</p> : null}
           {overview ? <section className="admin-metrics-grid" aria-label="People and content overview">

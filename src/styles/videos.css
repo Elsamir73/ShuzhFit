@@ -332,6 +332,11 @@
   aspect-ratio: 16 / 9;
   background: #000;
 }
+.vp-modal-frame--short {
+  width: min(100%, 405px);
+  aspect-ratio: 9 / 16;
+  margin-inline: auto;
+}
 .vp-modal-frame iframe {
   position: absolute;
   inset: 0;

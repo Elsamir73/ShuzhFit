@@ -15,6 +15,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import type { YouTubeFeedCacheValue } from "../shared/videos.js";
 
 export const userRoleEnum = pgEnum("user_role", ["user", "admin"]);
 
@@ -169,6 +170,14 @@ export const videos = pgTable(
     exerciseIdx: index("videos_exercise_idx").on(table.exerciseId),
   }),
 );
+
+export const contentCache = pgTable("content_cache", {
+  key: varchar("key", { length: 80 }).primaryKey(),
+  value: jsonb("value").$type<YouTubeFeedCacheValue>().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
 
 export const contentComments = pgTable(
   "content_comments",

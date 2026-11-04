@@ -1,3 +1,20 @@
+export type YouTubeVideo = {
+  id: string;
+  title: string;
+  thumbnail: string;
+  publishedAt: string;
+  durationSeconds: number;
+  isShort: boolean;
+  url: string;
+};
+
+export type YouTubeFeedSource = "api" | "rss" | "cache" | "static";
+
+export type YouTubeFeedCacheValue = {
+  videos: YouTubeVideo[];
+  source: YouTubeFeedSource;
+};
+
 /**
  * Shorts detection shared by the YouTube route and the Videos page.
  * A video counts as a Short when YouTube reports 60 seconds or less,
@@ -68,7 +85,8 @@ export function selectVideosWithShortFallback<
   const regularVideos = videos.filter((video) => !video.isShort);
   if (regularVideos.length >= 3) return regularVideos.slice(0, limit);
 
-  return [...videos]
+  const shorts = [...videos]
+    .filter((video) => video.isShort)
     .sort((a, b) => {
       const aDate = Date.parse(a.publishedAt);
       const bDate = Date.parse(b.publishedAt);
@@ -76,5 +94,47 @@ export function selectVideosWithShortFallback<
       const bTimestamp = Number.isFinite(bDate) ? bDate : 0;
       return bTimestamp - aTimestamp;
     })
-    .slice(0, limit);
+    .slice(0, limit - regularVideos.length);
+
+  return [...regularVideos, ...shorts].sort((a, b) => {
+    const aDate = Date.parse(a.publishedAt);
+    const bDate = Date.parse(b.publishedAt);
+    return (
+      (Number.isFinite(bDate) ? bDate : 0) -
+      (Number.isFinite(aDate) ? aDate : 0)
+    );
+  });
+}
+
+export function resolveVideoFeed<
+  T extends { isShort: boolean; publishedAt: string },
+>(
+  apiVideos: readonly T[],
+  rssVideos: readonly T[],
+  cachedVideos: readonly T[],
+  staticVideos: readonly T[],
+  limit: number,
+): { source: YouTubeFeedSource; videos: T[] } {
+  if (apiVideos.length) {
+    return {
+      source: "api",
+      videos: selectVideosWithShortFallback(apiVideos, limit),
+    };
+  }
+  if (rssVideos.length) {
+    return {
+      source: "rss",
+      videos: selectVideosWithShortFallback(rssVideos, limit),
+    };
+  }
+  if (cachedVideos.length) {
+    return {
+      source: "cache",
+      videos: selectVideosWithShortFallback(cachedVideos, limit),
+    };
+  }
+  return {
+    source: "static",
+    videos: selectVideosWithShortFallback(staticVideos, limit),
+  };
 }
