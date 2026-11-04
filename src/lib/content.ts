@@ -27,6 +27,7 @@ export type BlogPost = {
   author: string;
   contentFormat?: "html" | "markdown";
   coverImage?: string;
+  publishedAt?: string | null;
   seoTitle?: string;
   seoDescription?: string;
 };

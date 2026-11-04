@@ -56,6 +56,11 @@ const StaticPage = lazy(() =>
 const AboutPage = lazy(() =>
   import("./pages/AboutPage").then((module) => ({ default: module.AboutPage })),
 );
+const NutritionPage = lazy(() =>
+  import("./pages/NutritionPage").then((module) => ({
+    default: module.NutritionPage,
+  })),
+);
 const LoginPage = lazy(() =>
   import("./pages/LoginPage").then((module) => ({ default: module.LoginPage })),
 );
@@ -251,27 +256,7 @@ function App() {
             path="/nutrition"
             element={
               <Layout>
-                <StaticPage
-                  title="Nutrition"
-                  description="Nutrition guidance and habits for the ShuzhFit community."
-                  items={[
-                    {
-                      meta: "Protein",
-                      title: "Build the base",
-                      body: "Aim for protein at each meal to support recovery, lean tissue retention, and satiety across the week.",
-                    },
-                    {
-                      meta: "Calories",
-                      title: "Keep energy in balance",
-                      body: "Use your training load, activity, and body weight to find a sustainable calorie intake that supports performance and progress.",
-                    },
-                    {
-                      meta: "Structure",
-                      title: "Eat for repeatability",
-                      body: "Choose a few foods you can rely on, build meals around them, and keep your routine consistent instead of perfect.",
-                    },
-                  ]}
-                />
+                <NutritionPage />
               </Layout>
             }
           />

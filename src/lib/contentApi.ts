@@ -43,7 +43,9 @@ export async function loadBlogPosts(): Promise<BlogPost[]> {
 
 export async function loadBlogPost(slug: string): Promise<BlogPost | null> {
   const response = await fetch(`/api/content/blogs?slug=${encodeURIComponent(slug)}`);
-  if (response.status === 404) return null;
+  if (response.status === 404) {
+    return fallbackBlogPosts.find((item) => item.slug === slug) ?? null;
+  }
   if (!response.ok) return fallbackBlogPosts.find((item) => item.slug === slug) ?? null;
   return await response.json() as BlogPost;
 }
