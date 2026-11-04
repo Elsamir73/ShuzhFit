@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { header, requireAuth, sendError, type ApiRequest, type ApiResponse } from "../../lib/http.js";
+import { logAuthFailure } from "./_helpers.js";
 
 export default async function handler(req: ApiRequest, res: ApiResponse): Promise<void> {
   if (req.method !== "GET") {
@@ -25,7 +26,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
     }
     res.status(200).json({ user: { id: String(user.id), name: user.name, email: user.email, role: user.role === "admin" ? "admin" as const : "user" as const, onboarded: Boolean(user.onboardedAt) } });
   } catch (error) {
-    console.error("ME_FAILED", error);
+    logAuthFailure("ME_FAILED", error);
     sendError(res, 500, "SESSION_LOOKUP_FAILED", "Unable to load your session.");
   }
 }

@@ -13,6 +13,14 @@ export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
+export function logAuthFailure(context: string, error: unknown): void {
+  const message = error instanceof Error ? error.message : String(error);
+  const safeMessage = message
+    .replace(/\bpostgres(?:ql)?:\/\/[^\s"'<>]+/giu, "[redacted database URL]")
+    .replace(/\b(password|token|secret|authorization|api[_-]?key)\b(\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;]+)/giu, "$1$2[redacted]");
+  console.error(context, safeMessage);
+}
+
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 12);
 }

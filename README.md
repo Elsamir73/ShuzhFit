@@ -58,6 +58,12 @@ NODE_ENV=production
 
 The project includes a Vercel rewrites file in `vercel.json` so API routes and SPA routing behave correctly in production.
 
+## Deploying a change that touches the database
+
+1. Update `db/schema.ts`.
+2. Run `npx drizzle-kit push` and read the proposed change list; apply additions only.
+3. Then run `git push` to deploy the code.
+
 ## Migration status
 
 The app is in a staged migration state:

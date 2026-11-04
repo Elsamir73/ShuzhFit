@@ -3,7 +3,7 @@ import { validatePassword } from "../../../shared/password.js";
 import { createVerificationToken } from "../../lib/emailVerification.js";
 import { sendMail } from "../../lib/mailer.js";
 import { verifyEmail } from "../../lib/emailTemplates.js";
-import { hashPassword, normalizeEmail } from "./_helpers.js";
+import { hashPassword, logAuthFailure, normalizeEmail } from "./_helpers.js";
 import { requireJson, requireOrigin, sendError, type ApiRequest, type ApiResponse } from "../../lib/http.js";
 
 const registerSchema = z.object({
@@ -46,20 +46,24 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
       sendError(res, 409, "EMAIL_EXISTS", "An account already exists with that email.");
       return;
     }
-    const { token, tokenHash } = createVerificationToken();
-    await db.insert(schema.emailVerificationTokens).values({
-      userId: created.id,
-      tokenHash,
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-    });
-
-    const appUrl = process.env.APP_URL?.trim().replace(/\/+$/u, "");
     let emailSent = false;
-    if (!appUrl) {
-      console.error("Verification email not sent: APP_URL is not configured.");
-    } else {
-      const emailContent = verifyEmail(created.name, `${appUrl}/verify-email?token=${encodeURIComponent(token)}`);
-      emailSent = await sendMail({ to: created.email, ...emailContent });
+    try {
+      const { token, tokenHash } = createVerificationToken();
+      await db.insert(schema.emailVerificationTokens).values({
+        userId: created.id,
+        tokenHash,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      });
+
+      const appUrl = process.env.APP_URL?.trim().replace(/\/+$/u, "");
+      if (!appUrl) {
+        console.error("Verification email not sent: APP_URL is not configured.");
+      } else {
+        const emailContent = verifyEmail(created.name, `${appUrl}/verify-email?token=${encodeURIComponent(token)}`);
+        emailSent = await sendMail({ to: created.email, ...emailContent });
+      }
+    } catch (error) {
+      logAuthFailure("REGISTRATION_EMAIL_FAILED", error);
     }
 
     res.status(201).json({
@@ -71,7 +75,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
         : "Account created, but we could not send the email. Use Resend to try again.",
     });
   } catch (error) {
-    console.error("REGISTER_FAILED", error);
+    logAuthFailure("REGISTER_FAILED", error);
     sendError(res, 500, "REGISTRATION_FAILED", "Unable to create your account right now.");
   }
 }

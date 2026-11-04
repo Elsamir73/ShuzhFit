@@ -1,6 +1,6 @@
 import { eq, and, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { createAuthToken, normalizeEmail, setSessionCookie, verifyPassword } from "./_helpers.js";
+import { createAuthToken, logAuthFailure, normalizeEmail, setSessionCookie, verifyPassword } from "./_helpers.js";
 import { sendMail } from "../../lib/mailer.js";
 import { welcomeEmail } from "../../lib/emailTemplates.js";
 import { header, parseBody, requireJson, requireOrigin, sendError, type ApiRequest, type ApiResponse } from "../../lib/http.js";
@@ -69,10 +69,18 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
       return;
     }
 
-    await db.delete(schema.loginAttempts).where(and(
-      eq(schema.loginAttempts.email, email), eq(schema.loginAttempts.ipAddress, ipAddress),
-    ));
-    await db.update(schema.users).set({ lastLoginAt: new Date() }).where(eq(schema.users.id, userRow.id));
+    try {
+      await db.delete(schema.loginAttempts).where(and(
+        eq(schema.loginAttempts.email, email), eq(schema.loginAttempts.ipAddress, ipAddress),
+      ));
+    } catch (error) {
+      logAuthFailure("LOGIN_ATTEMPTS_CLEANUP_FAILED", error);
+    }
+    try {
+      await db.update(schema.users).set({ lastLoginAt: new Date() }).where(eq(schema.users.id, userRow.id));
+    } catch (error) {
+      logAuthFailure("LAST_LOGIN_UPDATE_FAILED", error);
+    }
     if (!userRow.welcomeSentAt) {
       try {
         const [claim] = await db.update(schema.users)
@@ -93,14 +101,19 @@ export default async function handler(req: ApiRequest, res: ApiResponse): Promis
           }
         }
       } catch (error) {
-        console.error("WELCOME_EMAIL_FAILED", error);
+        logAuthFailure("WELCOME_EMAIL_FAILED", error);
+        try {
+          await db.update(schema.users).set({ welcomeSentAt: null }).where(eq(schema.users.id, userRow.id));
+        } catch (resetError) {
+          logAuthFailure("WELCOME_EMAIL_CLAIM_RESET_FAILED", resetError);
+        }
       }
     }
     const user = { id: String(userRow.id), name: userRow.name, email: userRow.email, role: userRow.role === "admin" ? "admin" as const : "user" as const, onboarded: Boolean(userRow.onboardedAt) };
     setSessionCookie(res, await createAuthToken(user));
     res.status(200).json({ user });
   } catch (error) {
-    console.error("LOGIN_FAILED", error);
+    logAuthFailure("LOGIN_FAILED", error);
     sendError(res, 500, "LOGIN_FAILED", "Unable to log in right now.");
   }
 }
