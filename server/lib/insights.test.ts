@@ -23,4 +23,16 @@ describe("countMissedPlannedSessions", () => {
 
     expect(missed).toBe(0);
   });
+
+  it("supports the seven-day follow-up window without changing the default coaching window", () => {
+    const input = {
+      plannedWeekdays: [0, 1, 2, 3, 4, 5, 6],
+      activityDates: [],
+      planCreatedAt: "2026-10-01T00:00:00.000Z",
+      today: "2026-11-04T00:00:00.000Z",
+    };
+
+    expect(countMissedPlannedSessions(input)).toBe(13);
+    expect(countMissedPlannedSessions({ ...input, lookbackDays: 7 })).toBe(7);
+  });
 });

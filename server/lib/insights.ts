@@ -19,6 +19,7 @@ export function countMissedPlannedSessions(input: {
   activityDates: readonly string[];
   planCreatedAt: Date | string | null;
   today: Date | string;
+  lookbackDays?: number;
 }): number {
   if (!input.planCreatedAt) return 0;
   const planCreatedAt = input.planCreatedAt instanceof Date
@@ -33,7 +34,10 @@ export function countMissedPlannedSessions(input: {
   const activityDates = new Set(input.activityDates);
   let missed = 0;
 
-  for (let daysAgo = 13; daysAgo > 0; daysAgo -= 1) {
+  const lookbackDays = Number.isSafeInteger(input.lookbackDays) && (input.lookbackDays ?? 0) > 0
+    ? input.lookbackDays!
+    : 13;
+  for (let daysAgo = lookbackDays; daysAgo > 0; daysAgo -= 1) {
     const date = new Date(todayDate);
     date.setUTCDate(date.getUTCDate() - daysAgo);
     const dateKey = date.toISOString().slice(0, 10);

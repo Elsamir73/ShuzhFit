@@ -41,6 +41,7 @@ export const users = pgTable(
     targetWeightKg: decimal("target_weight_kg", { precision: 6, scale: 2 }),
     onboardedAt: timestamp("onboarded_at", { withTimezone: true }),
     emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
+    emailOptOutAt: timestamp("email_opt_out_at", { withTimezone: true }),
     welcomeSentAt: timestamp("welcome_sent_at", { withTimezone: true }),
     lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -49,6 +50,39 @@ export const users = pgTable(
   },
   (table) => ({
     emailIdx: index("users_email_idx").on(table.email),
+  }),
+);
+
+export const emailCampaigns = pgTable(
+  "email_campaigns",
+  {
+    id: serial("id").primaryKey(),
+    name: varchar("name", { length: 160 }).notNull(),
+    subject: varchar("subject", { length: 300 }).notNull(),
+    body: text("body").notNull(),
+    segment: varchar("segment", { length: 40 }).notNull(),
+    createdBy: integer("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    createdIdx: index("email_campaigns_created_idx").on(table.createdAt),
+  }),
+);
+
+export const emailSends = pgTable(
+  "email_sends",
+  {
+    id: serial("id").primaryKey(),
+    campaignId: integer("campaign_id").notNull().references(() => emailCampaigns.id, { onDelete: "cascade" }),
+    userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    status: varchar("status", { length: 20 }).notNull(),
+    error: text("error"),
+    sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    campaignUserUnique: uniqueIndex("email_sends_campaign_user_unique").on(table.campaignId, table.userId),
+    userSentIdx: index("email_sends_user_sent_idx").on(table.userId, table.sentAt),
+    sentAtIdx: index("email_sends_sent_at_idx").on(table.sentAt),
   }),
 );
 
